@@ -87,29 +87,68 @@ def drop_all_tables(database_file):
 
 import sqlite3
 
-def search_products(search_term, database_file):
+# def search_products(search_term, database_file):
+#     try:
+#         conn = sqlite3.connect(database_file)
+#         cursor = conn.cursor()
+#
+#         # LIKE для поиска продуктов по введенному пользователем поисковому запросу
+#         cursor.execute("SELECT product_name FROM unique_products WHERE product_name LIKE ?", ('%' + search_term + '%',))
+#         result = cursor.fetchall()
+#
+#         # Закрываем соединение
+#         conn.close()
+#
+#         return result
+#     except sqlite3.Error as e:
+#         print(f"Ошибка при выполнении поиска: {e}")
+#         return None
+
+def search_products(search_query, database_file):
     try:
         conn = sqlite3.connect(database_file)
         cursor = conn.cursor()
 
-        # Используем оператор LIKE для поиска продуктов по введенному пользователем поисковому запросу
-        cursor.execute("SELECT product_name FROM unique_products WHERE product_name LIKE ?", ('%' + search_term + '%',))
-        result = cursor.fetchall()
+        # Разбиваем входной запрос на отдельные слова
+        search_terms = search_query.split()
+
+        # Создаем список для хранения результатов поиска
+        results = []
+
+        # Создаем SQL-запрос с условиями LIKE для каждого слова в запросе
+        sql_query = "SELECT product_name FROM unique_products WHERE "
+        sql_conditions = []
+        for term in search_terms:
+            sql_conditions.append("product_name LIKE ?")
+        sql_query += " AND ".join(sql_conditions)
+
+        # Выполняем SQL-запрос
+        cursor.execute(sql_query, ['%' + term + '%' for term in search_terms])
+        term_results = cursor.fetchall()
+        results.extend(term_results)
 
         # Закрываем соединение
         conn.close()
 
-        return result
+        # Убираем дубликаты и сортируем результаты
+        unique_results = list(set(results))
+        unique_results.sort()
+
+        return unique_results
     except sqlite3.Error as e:
         print(f"Ошибка при выполнении поиска: {e}")
         return None
+
+# Пример использования функции
+
+
 
 
 
 
 if __name__ == "__main__":
-    db_file = "/home/valery/Рабочий стол/IAS/db.db3"
-    csv_folder = "/home/valery/Рабочий стол/IAS/Адреса"
+    db_file = "/home/valery/Рабочий стол/IAS/IAS_Rock_and_shop/db.db3"
+    csv_folder = "/home/valery/Рабочий стол/IAS/IAS_Rock_and_shop/Адреса"
     while True:
         question = int(input("\n\n\n\nЗавершить работу? - 0, \n"
                              "Хотите заполнить таблицу данными из csv файлов? - 1\n"

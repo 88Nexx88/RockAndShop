@@ -5,6 +5,105 @@ from flet import *
 
 from value_class import *
 
+
+class Calc_param():
+    def __init__(self, page, value_page):
+        self.page = page
+        self.value_page = value_page
+        self.calc_param()
+        self.page.update()
+
+    def korzina_click(self, e):
+        self.page.controls.clear()
+        Shop_box(self.page, self.value_page)
+
+    def quastion_find(self, event):
+        dlg = ft.AlertDialog(title=ft.Text("Нужна помощь?"),content=Column(controls=[
+            Text('В данном окне .....'),
+            Text('Если ошиблись с выбором, или хотите увеличить количество товара в позиции то ....')
+        ], width=400, height=400))
+        self.page.dialog = dlg
+        dlg.open =True
+        self.page.update()
+
+    def create_appbar(self):
+        self.question = ft.IconButton(on_click=self.quastion_find, icon=ft.icons.QUESTION_MARK)
+        if self.value_page.korzina_len != 0:
+            image = Image(src='..\\resources\\icons\\korzina_add.png')
+        else:
+            image = Image(src='..\\resources\\icons\\korzina_void.png')
+        self.list_product_button = ft.TextButton(
+            content=ft.Row(
+                [
+                    image,
+                    ft.Text(value='Корзина:', size=20, weight=ft.FontWeight.BOLD),
+                    ft.Text(value=self.value_page.korzina_len, size=20, weight=ft.FontWeight.BOLD, color='#fb2b3a')
+                ]
+        ), on_click=self.korzina_click)
+        self.appbar = ft.AppBar(
+            leading=ft.Icon(ft.icons.APPS),
+            leading_width=40,
+            title=ft.Text("Rock & Shop", weight=ft.FontWeight.BOLD),
+            center_title=False,
+            bgcolor=ft.colors.SURFACE_VARIANT,
+            actions=[
+                self.question,
+                self.list_product_button
+            ],
+        )
+        self.page.add(self.appbar)
+
+    def find_to_back(self, e):
+        self.page.controls.clear()
+        Shop_box(self.page, self.value_page)
+
+    def radiogroup_changed(self, e):
+        print(e.control.value)
+
+    def calc_param(self):
+        self.create_appbar()
+
+        t = ft.Text()
+        cg = ft.RadioGroup(value='Самый эффективный маршрут',content=ft.Column([
+            ft.Radio(value="Самый быстрый маршрут", label="Самый быстрый маршрут"),
+            ft.Radio(value="Самая выгодная цена ", label="Самая выгодная цена"),
+            ft.Radio(value="Самый эффективный маршрут", label="Самый эффективный маршрут")]), on_change=self.radiogroup_changed)
+
+        page_1 = Container(
+            width=1000,
+            height=900,
+            border_radius=35,
+            bgcolor='#2E4374',
+            alignment=alignment.center,
+            padding=padding.only(left=80, top=40, right=80, bottom=60),
+
+            content=Column(
+                alignment=alignment.top_right,
+                controls=[
+                    Container(height=10),
+                    Container(content=Text('Остался заключительный этап. Выберите предпочтения по покупке: ', size=32, weight='bold'), alignment=alignment.center, width=900),
+                    Container(height=10),
+                    cg,
+                    Row(
+                        controls=[
+                            TextButton(content=Row(controls=[
+                                Text(value= 'Назад',size=40),
+                                Icon(icons.ARROW_LEFT, size=140)
+                            ]), on_click=self.find_to_back),
+                            TextButton(content=Row(controls=[
+                                      Icon(icons.ARROW_RIGHT, size=140),
+                                      Text(value='Далее', size=40)
+                            ]), on_click=self.find_to_back),
+                        ], alignment=MainAxisAlignment.SPACE_BETWEEN
+                    )
+
+                ]
+            )
+        )
+
+        self.page.add(page_1)
+
+
 class Shop_box():
 
     def __init__(self, page, value_page):
@@ -75,8 +174,8 @@ class Shop_box():
         
 
     def element_click(self, e):
-        count = int(e.control.content.controls[3].controls[3].content.value.replace('Количество товара в штуках: ', ''))
-        name = e.control.content.controls[3].controls[1].content.value
+        count = int(e.control.content.controls[3].controls[5].content.value.replace('Количество товара в штуках: ', ''))
+        name = e.control.content.controls[3].controls[2].content.content.value
         self.txt_number = Text(value=count)
         self.dialog = ft.AlertDialog(
             title=ft.Text("Укажите количество товара: "),
@@ -93,7 +192,7 @@ class Shop_box():
             actions_alignment=ft.MainAxisAlignment.END,
         )
         for i in self.value_page.list_korzina:
-            f_name = i.name.content.value
+            f_name = i.name.content.content.value
             if f_name == name:
                 self.product = i
         self.page.dialog = self.dialog
@@ -109,15 +208,17 @@ class Shop_box():
                                 i.image,
                                 Container(width=15),
                                 Column(controls=[
-                                    Container(height=30),
+                                    Container(height=10),
+                                    i.shops,
                                     i.name, 
                                     i.info,
+                                    i.price,
                                     Container(Text(value='Количество товара в штуках: '+str(i.count), size=20, color='#75602F', text_align='CENTER'), width=500)
                                     ])
                             ]
                             ),
                             # on_click=self.element_click, bgcolor='#ADC4CE', height=200, border_radius=10)
-                            on_click=self.element_click, bgcolor=colors.WHITE, height=200, border_radius=10)
+                            on_click=self.element_click, bgcolor=colors.WHITE, height=250, border_radius=10)
             self.list_korzina_product.content.controls.append(r)
             
 
@@ -125,19 +226,19 @@ class Shop_box():
         self.create_appbar()
         if self.value_page.korzina_len == 0:
             self.list_korzina_product = Container(content=Column(
-                height=540,
+                height=546,
                 controls=[
-                    Container(height=40),
+                    Container(height=10),
                     Container(content = Column(controls=[
                         Container(Text(value='Если добавить товары в корзину, она не будет пустой!', size=24, weight=ft.FontWeight.BOLD, color='#1d1e33'), alignment=alignment.center),
                         Container(Image(src='..\\resources\\icons\\void_korzina_rofl.png', height=256, width=256), alignment=alignment.center, padding=padding.only(right=40))]
-                    ), bgcolor='#ADC4CE', border_radius=10)
+                    ), bgcolor='white', border_radius=10)
                 ]
             ),
             )
         else:
             self.list_korzina_product = Container(content=Column(
-                height=540,
+                height=546,
                 scroll='auto',
                 controls=[
                 ]
@@ -159,9 +260,9 @@ class Shop_box():
             content=Column(
                 alignment=alignment.top_right,
                 controls=[
-                    Container(height=20),
-                    Text('Корзина: ', size=40, weight='bold'),
                     Container(height=10),
+                    Text('Корзина: ', size=40, weight='bold'),
+                    Container(height=1),
                     self.len_korzina,
                     self.list_korzina_product,
                     Row(
@@ -188,8 +289,23 @@ class Shop_box():
         AppFinder(self.page, self.value_page)
     
     def to_calc_page(self, e):
-        self.page.controls.clear()
-        AppMain(self.page, self.value_page)
+        if self.value_page.korzina_len != 0:
+            self.page.controls.clear()
+            Calc_param(self.page, self.value_page)
+        else:
+            dlg_modal = ft.AlertDialog(
+                modal=True,
+                title=ft.Text("Внимание!", weight=FontWeight.BOLD, size=24),
+                content=ft.Text("С пустой корзиной, приложение вам ничего не рассчитает 😭", weight=FontWeight.BOLD, size=20),
+                actions=[
+                    ft.TextButton(content= Text('Хорошо👍',weight=FontWeight.BOLD, size=20), on_click=self.exit_add_click),
+                    ft.TextButton(content= Text("Сейчас добавлю товар!👌",weight=FontWeight.BOLD, size=20), on_click=self.exit_add_click),
+                ],
+                actions_alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
+            self.dialog = dlg_modal
+            self.page.dialog = self.dialog
+            self.dialog.open = True
+        self.page.update()
 
 
     def korzina_full_clear_click(self, e):
@@ -240,6 +356,7 @@ class AppFinder:
         self.Is_has_validate_name = {'status_name': 0, 'status_surname': 0}
         self.Is_has_name_surname = 0
         self.Is_has_session = 0
+        self.sort_list = 'Названию'
 
         self.finder_app()
 
@@ -294,21 +411,21 @@ class AppFinder:
         self.page.add(self.appbar)
 
     def find_product(self, e):
-        if e.control.value != '':
+        # if e.control.value != '':
             self.list_find_product.bgcolor = '#2E4374'
             self.list_find_product.height = 405
             self.list_find_product.content.controls.clear()
             self.list_find_product.content.controls.append(Container(height=1))
             self.generate_product_list(e.control.value)
-            self.count_product_find.value = 'Найдено $ товаров!👩🏿‍💻'
+            self.count_product_find.value = 'Найдено $ товаров!'
 
             self.page.update()
-        else:
-            self.list_find_product.content.controls.clear()
-            self.list_find_product.content.controls.append(Container(height=1))
-            self.count_product_find.value = 'Не знаете что купить? Попробуйте эти товары!👩🏿‍💻'
-            self.generate_recom_list()
-            self.page.update()
+        # else:
+            # self.list_find_product.content.controls.clear()
+            # self.list_find_product.content.controls.append(Container(height=1))
+            # self.count_product_find.value = 'Не знаете что купить? Попробуйте эти товары!'
+            # self.generate_recom_list()
+            # self.page.update()
 
     def generate_recom_list(self):
         for i in range(5):
@@ -345,7 +462,7 @@ class AppFinder:
         self.dialog.open = False
         self.page.update()
         for i in self.value_page.list_korzina:
-            if self.product.name.content.value == i.name.content.value:
+            if self.product.name.content.content.value == i.name.content.content.value:
                 self.dublicate_product()
                 return
             
@@ -396,12 +513,15 @@ class AppFinder:
             actions_alignment=ft.MainAxisAlignment.END,
         )
         image = e.control.content.controls[1]
-        name = e.control.content.controls[3].controls[1]
-        info = e.control.content.controls[3].controls[2]
-        self.product = Product(name, info, 0, image)
+        shops = e.control.content.controls[3].controls[1]
+        name = e.control.content.controls[3].controls[2]
+        info = e.control.content.controls[3].controls[3]
+        price = e.control.content.controls[3].controls[4] 
+        self.product = Product(name, info, 0, image, shops, price)
         self.page.dialog = self.dialog
         self.dialog.open = True
         self.page.update()
+
 
     def generate_product_list(self, zapros):
             for i in range(80):
@@ -410,37 +530,60 @@ class AppFinder:
                                 Container(width=15),
                                 Container(Image(src='..\\resources\\vodka_medved.png', fit=ft.ImageFit.NONE,
                                     repeat=ft.ImageRepeat.NO_REPEAT),
-                                    border_radius=ft.border_radius.all(10), width=200, height=190, bgcolor=colors.WHITE),
+                                    border_radius=ft.border_radius.all(10), width=200, height=190, bgcolor=colors.WHITE, padding=padding.all(5)),
                                 Container(width=15),
                                 Column(controls=[
-                                    Container(height=30),
-                                    Container(content=Text(value='"Вино Пьетраме Монтепульчано Д`Абруццо DOP красное полусухое"'+str(i), size=24, color='#1d1e33', max_lines=3, text_align='CENTER'), width=500), 
+                                    Container(height=15),
+                                    Container(content=Tooltip(message='Наличие товара в магазине',content=Row(controls=
+                                                                  [
+                                                                      Row(controls=[Image(src='..\\resources\\icons_shops\\5.jpg', width=25, height=25), Text('Пятёрочка', color='#1d1e33', size=20)]), 
+                                                                      Row(controls=[Image(src='..\\resources\\icons_shops\\kb.png', width=25, height=25), Text('Красное и белое', color='#1d1e33', size=20)])],
+                                                                      alignment=MainAxisAlignment.CENTER), bgcolor='#2E4374', text_style=ft.TextStyle(size=15, color=ft.colors.WHITE), wait_duration=200), width=500),
+                                    
                                     Container(content=
-                                            Text(value='Италия, 0.75 л., Абруццо, 13%', size=20, color='#53377a', text_align='CENTER'), width=500)
-                                    ])
-                            ]
-                            ),
+                                            Tooltip(message='Название товара', content= 
+                                                    Text(value='"Вино Пьетраме Монтепульчано Д`Абруццо DOP красное полусухое"'+str(i), size=24, color='#1d1e33', max_lines=3, text_align='CENTER'), 
+                                            bgcolor='#2E4374', text_style=ft.TextStyle(size=15, color=ft.colors.WHITE), wait_duration=200), 
+                                            width=500), 
+                                    Container(content=Tooltip(message='Информация о товаре', content=
+                                            Text(value='Италия, 0.75 л., Абруццо, 13%', size=20, color='#53377a', text_align='CENTER'), bgcolor='#2E4374', text_style=ft.TextStyle(size=15, color=ft.colors.WHITE), wait_duration=200),
+                                              width=500), 
+                                    Container(content=Tooltip(message='Диапозон цен', content=
+                                            Text(value='120 - 350'+'₽', size=24, color='#1d1e33', text_align='CENTER', weight=FontWeight.BOLD), bgcolor='#2E4374', text_style=ft.TextStyle(size=15, color=ft.colors.WHITE), wait_duration=200),
+                                              width=500),
+                                              
+                            ]),
+                            Container(alignment=alignment.top_center,content=Tooltip(message='Количество товара в магазинах',content=Text('123', size=22, color='black', weight='bold'), bgcolor='#2E4374', text_style=ft.TextStyle(size=15, color=ft.colors.WHITE), wait_duration=200), padding=5)
+                                    
+                                    ]),
                             # on_click=self.element_click, bgcolor='#ADC4CE', height=200, border_radius=10)
-                            on_click=self.element_click, bgcolor=colors.WHITE, height=200, border_radius=10)
+                            on_click=self.element_click, bgcolor=colors.WHITE, height=220, border_radius=10)
                self.list_find_product.content.controls.append(r)
 
-    
+    def dropdown_changed(self, e):
+        self.sort_list = e.control.value
+        print(self.sort_list)
+
     def finder_app(self):
         self.create_appbar()
         self.list_find_product = Container(content=Column(
-            height=400,
+            height=405,
             scroll='auto',
             controls=[
-                Container(height=40)
             ]
         )
         )
         
-        self.count_product_find = Text(value='', size=24, weight=ft.FontWeight.BOLD, color='#E5C3A6')
+        self.count_product_find = Text(value='', size=22, weight=ft.FontWeight.BOLD)
+        self.block_bottom_finder = Row(controls=[self.count_product_find, 
+        # Row(controls=[Text('Сортировать по: ', size=22, weight=ft.FontWeight.BOLD), Dropdown(value='Названию',width=400, on_change=self.dropdown_changed, text_size= 22,
+        Row(controls=[Dropdown(value='Названию', label = "Сортировать по:", label_style=TextStyle(size=18, color='white', weight='bold'),width=400, on_change=self.dropdown_changed, text_size= 18, border_color='gray', border_width=1.5,                                                                                   
+                                                                                             border_radius=10, options=[
+            ft.dropdown.Option("Названию"),ft.dropdown.Option("Минимальной цене"), ft.dropdown.Option("Максимальной цене"),ft.dropdown.Option("По наличию всего"), ft.dropdown.Option("По наличию в магазине Пятёрочка"), ft.dropdown.Option("По наличию в магазине КБ")])])], alignment=MainAxisAlignment.SPACE_BETWEEN)
         self.find_label = TextField(
-                        hint_text='Введите название продукта: ',text_size=20, height=50, on_change=self.find_product, border=border.all(2, '#2E4374'), 
+                        hint_text='Введите название продукта: ', hint_style=TextStyle(color='#6B6767'),text_size=20, height=50, on_change=self.find_product, border=border.all(2, '#2E4374'), 
                         # bgcolor='#ADC4CE', text_style=TextStyle(color='black'))
-                        bgcolor=colors.WHITE, text_style=TextStyle(color='black'))
+                        bgcolor=colors.WHITE, text_style=TextStyle(color='black', weight='bold'))
         page_1 = Container(
             width=1000,
             height=900,
@@ -452,11 +595,11 @@ class AppFinder:
             content=Column(
                 alignment=alignment.top_right,
                 controls=[
-                    Container(height=20),
-                    Text('Добрый день, давайте выберем товары необходимые вам: ', size=44, weight='bold'),
-                    Container(height=20),
+                    Container(height=10),
+                    Text('Добрый день, давайте выберем товары необходимые вам: ', size=34, weight='bold'),
+                    Container(height=10),
                     self.find_label,
-                    self.count_product_find,
+                    self.block_bottom_finder,
                     self.list_find_product,
                     Row(
                         controls=[
@@ -499,13 +642,13 @@ class AppMain:
                 Container(height=200),
                 Container(height=150),
                 Container(content=self.TextHeaderWelcome, alignment=alignment.center),
-                Container(height=274),
+                Container(height=267),
                 Container(content=Row(controls=
                                       [
                                             Container(width=100),
                                             TextButton(content=Row(controls=[
                                             Icon(icons.ARROW_RIGHT, size=140),
-                                            Text(value='Вперёд👍', size=41)
+                                            Text(value='Вперёд!', size=41)
                                           
                             ]), on_click=self.to_next)
             ], alignment=MainAxisAlignment.SPACE_BETWEEN))

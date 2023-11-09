@@ -80,7 +80,7 @@ import requests
 
 # Функция для скачивания изображения по ссылке и сохранения в заданную директорию
 def download_image(url, directory, filename):
-    print(f"{filename} -- {type(filename)}")
+    print(f"{filename} -- {url}")
     try:
         response = requests.get(url)
         with open(os.path.join(directory, filename), 'wb') as file:
@@ -88,7 +88,7 @@ def download_image(url, directory, filename):
     except:
         response = requests.get(url)
         if "/" in filename:
-            filename.replace('/', '-')
+            filename = filename.replace('/', '-')
             with open(os.path.join(directory, filename), 'wb') as file:
                 file.write(response.content)
 

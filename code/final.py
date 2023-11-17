@@ -3,6 +3,16 @@ import sqlite3
 import pandas as pd
 import os
 
+
+# def sql_executor(sql_query: str, flag: str):
+#     with sqlite3.connect("db.db3") as conn:
+#         cursor = conn.cursor()
+#         cursor.execute(sql_query)
+#         match flag:
+#             case "select"
+
+
+
 def from_csv_to_database(db_file: str, csv_folder: str, shop_flag: str):
     with sqlite3.connect(db_file) as conn:
         # Получение списка CSV-файлов в папке
@@ -24,21 +34,17 @@ def from_csv_to_database(db_file: str, csv_folder: str, shop_flag: str):
 
 
 def get_names_tables(flag: str = 'all'):
-    match flag:
-        case "all":
-            with sqlite3.connect('db.db3') as conn:
-                cursor = conn.cursor()
-                return [i[0] for i in cursor.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name != 'unique_products'").fetchall()]
-        case "kb":
-            with sqlite3.connect('db.db3') as conn:
-                cursor = conn.cursor()
-                return [i[0] for i in cursor.execute(
-                    "SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE 'kb_%'").fetchall()]
-        case "bristol":
-            with sqlite3.connect('db.db3') as conn:
-                cursor = conn.cursor()
-                return [i[0] for i in cursor.execute(
-                    "SELECT name FROM sqlite_master WHERE type = 'table' AND name name LIKE 'bristol_%'").fetchall()]
+    with sqlite3.connect("db.db3") as conn:
+        cursor = conn.cursor()
+        match flag:
+            case "all":
+                    return [i[0] for i in cursor.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name != 'unique_products'").fetchall()]
+            case "kb":
+                    return [i[0] for i in cursor.execute(
+                        "SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE 'kb_%'").fetchall()]
+            case "bristol":
+                    return [i[0] for i in cursor.execute(
+                        "SELECT name FROM sqlite_master WHERE type = 'table' AND name name LIKE 'bristol_%'").fetchall()]
 
 def drop_all_tables(database_file):
     try:
@@ -64,27 +70,27 @@ def get_name_products():
         return [i[0] for i in conn.cursor().execute("SELECT name FROM unique_products").fetchall()]
 
 def generate_sql(flag: str, name_product: str):
-    with sqlite3.connect('db.db3') as conn:
-        cursor = conn.cursor()
-        temp: int = 1
-        tables = get_names_tables("all")
+    sql: str = ""
+    match flag:
+        case "for_search":
+            temp: int = 1
+            tables = get_names_tables("all")
 
-        sql: str = ""
-        for table in tables:
-            if temp < len(tables):
-                try:
-                    sql += f"SELECT address FROM `{table}` WHERE name = '{name_product}' UNION "
-                except sqlite3.OperationalError:
-                    sql += f'SELECT address FROM `{table}` WHERE name = "{name_product}" UNION '
-                finally:
-                    temp += 1
-            else:
-                try:
-                    sql += f"SELECT address FROM `{table}` WHERE name = '{name_product}'"
-                except sqlite3.OperationalError:
-                    sql += f'SELECT address FROM `{table}` WHERE name = "{name_product}"'
-                finally:
-                    temp += 1
+            for table in tables:
+                if temp < len(tables):
+                    try:
+                        sql += f"SELECT address FROM `{table}` WHERE name = '{name_product}' UNION "
+                    except sqlite3.OperationalError:
+                        sql += f'SELECT address FROM `{table}` WHERE name = "{name_product}" UNION '
+                    finally:
+                        temp += 1
+                else:
+                    try:
+                        sql += f"SELECT address FROM `{table}` WHERE name = '{name_product}'"
+                    except sqlite3.OperationalError:
+                        sql += f'SELECT address FROM `{table}` WHERE name = "{name_product}"'
+                    finally:
+                        temp += 1
     return sql
 
 def create_dict_product_address():
@@ -145,4 +151,4 @@ def create_unique_table(db_file: str):
 if __name__ == "__main__":
     start = time.time()
     create_dict_product_address()
-    print(f"running time - {(time.time() - start)/60} min")
+    print(f"running time - {(time.time() - start) / 60} min")

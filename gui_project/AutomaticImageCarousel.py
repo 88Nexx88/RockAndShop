@@ -1,0 +1,63 @@
+from flet import *
+import time
+import threading
+import webbrowser
+class AutomaticImageCarousel(UserControl):
+	def __init__(self, images_list, perseverance_time:float, animations:list, descriptive=True):
+		super().__init__()
+		self.descriptive = descriptive
+		self.images_list = images_list
+		self.perseverance_time = perseverance_time
+		self.animation_in = animations[0]
+		self.animation_out = animations[1]
+		self.carousel = self.build_carousel()
+
+	def did_mount(self):
+		self.running = True
+		self.th = threading.Thread(target=self.animate, args=(), daemon=True)
+		self.th.start()
+
+	def build_carousel(self):
+		carousel = AnimatedSwitcher(
+		        Column([], horizontal_alignment=CrossAxisAlignment.CENTER),
+		        transition=AnimatedSwitcherTransition.FADE,
+		        duration=500,
+		        reverse_duration=500,
+		        switch_in_curve=self.animation_in,
+		        switch_out_curve=self.animation_out,
+		    )
+		return carousel
+
+	def on_click(self, e):
+		url = ''
+		for i, row in enumerate(self.images_list):
+			if row[0] == e.control.content.src:
+				url = row[1]
+		webbrowser.open(url, new=0, autoraise=True)
+	def animate(self):
+		ind = 0
+		indexes = [Icon(icons.CIRCLE_OUTLINED,size=11) for _ in self.images_list]
+		print(self.images_list)
+		while True:
+		    indexes[ind-1] = Icon(icons.CIRCLE_OUTLINED,size=11)
+		    indexes[ind] = Icon(icons.CIRCLE_ROUNDED,size=15)
+		    self.carousel.content = Column([
+		        Container(
+		                Image(src=self.images_list[ind][0],fit=ImageFit.FILL, border_radius=border_radius.all(5),),
+		                border=border.all(1, colors.BLACK),
+		                border_radius=border_radius.all(5),
+						on_click=self.on_click
+		            ),
+		        Row(indexes,alignment=MainAxisAlignment.CENTER),
+		    ])
+		    # if self.descriptive == True:
+			#     self.carousel.content.controls.insert(1, Text(self.images_list[ind][1]))
+		    ind += 1
+		    if ind == len(self.images_list):
+		        ind = 0
+		    self.update()
+		    self.carousel.update()
+		    time.sleep(self.perseverance_time)
+
+	def build(self):
+		return self.carousel

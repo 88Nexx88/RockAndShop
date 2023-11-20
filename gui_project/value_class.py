@@ -9,6 +9,87 @@ class Value_page():
         self.korzina_len += 1
         self.list_korzina.append(product)
 
+
+    def sort_list_korzina(self, sort):
+        if sort == 'Названию':
+            new_list = []
+            nazv = []
+            for i in self.list_korzina:
+                nazv.append(i.name.content.content.value)
+            nazv.sort()
+            for i in nazv:
+                for j in self.list_korzina:
+                    if j.name.content.content.value == i:
+                        new_list.append(j)
+                        self.list_korzina.remove(j)
+                        break
+            self.list_korzina = new_list.copy()
+        elif sort == 'Магазин КБ':
+            new_list = []
+            nazv = []
+            for i in self.list_korzina:
+                if len(i.shops.content.content.controls) > 1:
+                    continue
+                else:
+                    nazv.append(i.shops.content.content.controls[0].controls[1].value)
+            nazv.sort(reverse=True)
+            for i in nazv:
+                for j in self.list_korzina:
+                    if len(j.shops.content.content.controls) > 1:
+                        continue
+                    if j.shops.content.content.controls[0].controls[1].value == i:
+                        new_list.append(j)
+                        self.list_korzina.remove(j)
+                        break
+            self.list_korzina = new_list.copy()
+        elif sort == 'Магазин Бристоль':
+            new_list = []
+            nazv = []
+            for i in self.list_korzina:
+                if len(i.shops.content.content.controls) > 1:
+                    continue
+                else:
+                    nazv.append(i.shops.content.content.controls[0].controls[1].value)
+            nazv.sort()
+            for i in nazv:
+                for j in self.list_korzina:
+                    if len(j.shops.content.content.controls) > 1:
+                        continue
+                    if j.shops.content.content.controls[0].controls[1].value == i:
+                        new_list.append(j)
+                        self.list_korzina.remove(j)
+                        break
+            self.list_korzina = new_list.copy()
+        elif sort == 'Минимальной цене':
+            new_list = []
+            nazv = []
+            for i in self.list_korzina:
+                nazv.append(float(i.price.content.content.value.replace(' ₽', '')))
+            nazv.sort()
+            for i in nazv:
+                for j in self.list_korzina:
+                    if float(j.price.content.content.value.replace(' ₽', '')) == i:
+                        new_list.append(j)
+                        self.list_korzina.remove(j)
+                        break
+            self.list_korzina = new_list.copy()
+        elif sort == 'Максимальной цене':
+            new_list = []
+            nazv = []
+            for i in self.list_korzina:
+                nazv.append(float(i.price.content.content.value.replace(' ₽', '')))
+            nazv.sort(reverse=True)
+            for i in nazv:
+                for j in self.list_korzina:
+                    if float(j.price.content.content.value.replace(' ₽', '')) == i:
+                        new_list.append(j)
+                        self.list_korzina.remove(j)
+                        break
+            self.list_korzina = new_list.copy()
+        # for i in self.list_korzina:
+            
+
+
     def delete_korzina_product(self, product):
         self.korzina_len -= 1
         self.list_korzina.remove(product)

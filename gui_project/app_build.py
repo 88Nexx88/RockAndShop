@@ -1,13 +1,96 @@
 import json
 import time
 import webbrowser
-
+from itertools import islice
 import flet as ft
 from flet import *
 from ymaps import *
 
+from AutomaticImageCarousel import AutomaticImageCarousel
 from value_class import *
+import find_products
 
+class Calc_reclam():
+    def __init__(self, page, value_page):
+        self.page = page
+        self.value_page = value_page
+        self.calc_reclam()
+        self.page.update()
+        self.calculation()
+
+    def create_appbar(self):
+        self.appbar = ft.AppBar(
+            leading=ft.Icon(ft.icons.APPS),
+            leading_width=40,
+            title=ft.Text("Rock & Shop", weight=ft.FontWeight.BOLD),
+            center_title=False,
+            bgcolor=ft.colors.SURFACE_VARIANT,
+            actions=[
+            ],
+        )
+        self.page.add(self.appbar)
+
+    def next_page(self, e):
+        print("!!!")
+
+    def calculation(self):
+        time.sleep(10)
+        self.progress_bar.content.controls[0].value = 'Рассчёт окончен!'
+        self.page.update()
+        time.sleep(2)
+        self.progress_bar.content = Row(
+            controls=[
+                Text(value=''),
+                TextButton(content=Row(controls=[
+                    Icon(icons.ARROW_RIGHT, size=self.page.window_height * 0.1056),
+                    Text(value='Далее', size=self.page.window_height * 0.024)
+                ]), on_click=self.next_page),
+            ], alignment=MainAxisAlignment.SPACE_BETWEEN
+        )
+        self.page.update()
+
+    def exit_reclama(self):
+        self.progress_bar.content.controls[0].value = 'Рассчёт окончен!'
+    def calc_reclam(self):
+        self.create_appbar()
+        self.progress_bar = Container()
+        self.progress_bar.content = Column(controls=[Text(value='', style="headlineSmall"),
+                                                     ft.ProgressBar(width=900, height=40, bgcolor="white")],
+                                           alignment=alignment.center)
+        self.progress_bar.content.controls[0].value = 'Рассчитываем вашу покупку...'
+        images = [['..\\resources\\reclam\\vlsu.png', 'https://prkom.vlsu.ru/'],['..\\resources\\reclam\\izi1.png', 'http://izi.vlsu.ru/index.php?id=2'], ['..\\resources\\reclam\\izi2.png', 'https://vk.com/izivlsu']]
+        page_1 = Container(
+            width=1000,
+            height=self.page.window_height * 0.87,
+            border_radius=35,
+            bgcolor='#2E4374',
+            alignment=alignment.center,
+            padding=padding.only(left=80, top=self.page.window_height * 0.037, right=80),
+            content=Column(
+                alignment=MainAxisAlignment.SPACE_BETWEEN,
+                controls=[
+                    Column(controls=[
+                        Container(height=10),
+                        Container(content=Text('Пока программа рассчитывает оптимальный вариант покупки, ознакомьтесь с предложением наших спонсоров!',
+                                               size=self.page.window_height * 0.0296,
+                                               weight='bold'), alignment=alignment.center, width=900),
+                            Container(content=AutomaticImageCarousel(
+                                images_list=images,
+                                perseverance_time=5.0,
+                                animations=[ft.AnimationCurve.EASE_IN, ft.AnimationCurve.EASE_IN_OUT_CUBIC_EMPHASIZED],
+                                descriptive=True), height=self.page.window_height * 0.54, width=900)
+                            ]
+                    ),
+                    self.progress_bar,
+                    Container(height=20),
+
+                ]
+            )
+        )
+
+        self.page.add(page_1)
+
+        # self.page.update()
 
 class Calc_param():
     def __init__(self, page, value_page):
@@ -60,6 +143,37 @@ class Calc_param():
         self.page.controls.clear()
         Shop_box(self.page, self.value_page)
 
+    def find_geo(self, e):
+        client = Geocode('9fa910c6-ae58-4d88-972f-d0d5aae763ca')
+        response = client.geocode(self.find_geolo.value + ' ' + self.find_geolo.suffix_text, sco='latlong')
+        coordinates = response['response']['GeoObjectCollection']['featureMember'][0]['GeoObject']['Point']['pos']
+        print(response)
+        print(coordinates)
+        client = Static(url='1.x')
+        client.load_image(path='user\\' + e.control.value + '.png', l=['map'], ll=coordinates.split(' '), z=16,
+                          scale=1.2, size=[350, 350],
+                          pt=[
+                              coordinates.replace(' ', ',') + ',pmwtm1']
+                          )
+        time.sleep(1)
+        self.geolo_pos.content = Image(src='user\\' + e.control.value + '.png')
+        dlg_modal = ft.AlertDialog(
+            modal=True,
+            title=ft.Text("Это геолокация, та что вы указали?", weight=FontWeight.BOLD, size=24),
+            content=self.geolo_pos,
+            actions=[
+                ft.TextButton(content=Text("Нет!", weight=FontWeight.BOLD, size=20),
+                              on_click=self.exit_add_click),
+                ft.TextButton(content=Text("Да!", weight=FontWeight.BOLD, size=20),
+                              on_click=self.exit_add_click),
+            ],
+            actions_alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
+        self.dialog = dlg_modal
+        self.page.dialog = self.dialog
+        self.dialog.open = True
+
+        self.page.update()
+
     def radiogroup_changed(self, e):
         print(e.control.value)
     def dropdown_changed(self, e):
@@ -70,16 +184,15 @@ class Calc_param():
         coordinates = response['response']['GeoObjectCollection']['featureMember'][0]['GeoObject']['Point']['pos']
         print(coordinates)
         client = Static(url='1.x')
-        client.load_image(path='user\\'+e.control.value+'.png', l=['map'], ll=coordinates.split(' '), z=16, scale=1.2, size=[350, 350],
+        client.load_image(path='user\\'+self.find_geolo.value+'.png', l=['map'], ll=coordinates.split(' '), z=16, scale=1.2, size=[350, 350],
                           pt=[
                               coordinates.replace(' ', ',')+',pmwtm1']
                           )
-        time.sleep(2)
-        print("!!!")
-        self.geolo_pos.content = Image(src='user\\'+e.control.value+'.png')
+        time.sleep(1)
+        self.geolo_pos.content = Image(src='user\\'+self.find_geolo.value+'.png')
         dlg_modal = ft.AlertDialog(
             modal=True,
-            title=ft.Text("Это геолокация, та что вы указали?", weight=FontWeight.BOLD, size=24),
+            title=ft.Text("Это геолокация та, что вы указали?", weight=FontWeight.BOLD, size=24),
             content=self.geolo_pos,
             actions=[
                 ft.TextButton(content=Text("Нет!", weight=FontWeight.BOLD, size=20),
@@ -101,6 +214,8 @@ class Calc_param():
     def next_page(self, e):
         client = Geocode('9fa910c6-ae58-4d88-972f-d0d5aae763ca')
         print(self.find_geolo.value, self.find_geolo.suffix_text)
+        self.page.controls.clear()
+        Calc_reclam(self.page, self.value_page)
         # response = client.geocode(self.find_geolo.value+' '+self.find_geolo.suffix_text, sco='latlong')
         # # data = json.loads(response)
         # print(response, type(response))
@@ -113,24 +228,36 @@ class Calc_param():
         self.create_appbar()
 
         cg = Dropdown(
-                          value='Самый эффективный по всем критериям',
+                          value='Самый оптимальный',
                           label="Параметр эффективности варианта",
+                          bgcolor='#667FBA',
+                          focused_bgcolor='#667FBA',
+                          filled=True,
                           label_style=TextStyle(size=18, color='white', weight='bold'),
+
+                          text_style=TextStyle(size=self.page.window_height * 0.0185, color='white',
+                                 weight='bold'),
                           # width=400, on_change=self.dropdown_changed, text_size=18,
-                          width=400, text_size=18,
+                          width=400,
                           border_color='gray', border_width=1.5,
                           border_radius=10, options=[
                               ft.dropdown.Option("Самый быстрый"),
                               ft.dropdown.Option("Самый выгодный по цене"),
-                              ft.dropdown.Option("Самый эффективный по всем критериям")
+                              ft.dropdown.Option("Самый оптимальный")
             ])
 
         rg = Dropdown(
                           value='Пешком',
                           label="Параметры маршрута",
+                          bgcolor='#667FBA',
+                          focused_bgcolor='#667FBA',
+                          filled=True,
                           label_style=TextStyle(size=18, color='white', weight='bold'),
+
+                          text_style=TextStyle(size=self.page.window_height * 0.0185, color='white',
+                                                 weight='bold'),
                           # width=400, on_change=self.dropdown_changed, text_size=18,
-                          width=400, text_size=18,
+                          width=400,
                           border_color='gray', border_width=1.5,
                           border_radius=10, options=[
                               ft.dropdown.Option("Пешком"),
@@ -148,8 +275,14 @@ class Calc_param():
                     text_size=self.page.window_height * 0.0225, height=self.page.window_height * 0.06,
                     border=border.all(2, '#2E4374'),
                     # bgcolor='#ADC4CE', text_style=TextStyle(color='black'))
-                    bgcolor=colors.WHITE, text_style=TextStyle(color='black', weight='bold'))
+                    bgcolor=colors.WHITE, text_style=TextStyle(color='black', weight='bold'), on_submit=self.find_geo)
         self.geolo_pos = Container(height=400, content=Text(value=''), alignment=alignment.center, width=400)
+
+        options = []
+        with open('user/save_addr', encoding='utf-8', mode='r') as file:
+            lines = file.readlines()
+            for line in lines:
+                options.append(ft.dropdown.Option(line.rstrip('\n')))
 
         page_1 = Container(
             width=1000,
@@ -177,24 +310,28 @@ class Calc_param():
                                   Dropdown(
                                       value='',
                                       label="Сохранённые точки!",
+                                      bgcolor='#667FBA',
+                                      focused_bgcolor='#667FBA',
+                                      filled=True,
                                       label_style=TextStyle(size=18, color='white', weight='bold'),
-                                      width=400, on_change=self.dropdown_changed, text_size=18,
+
+                                      text_style=TextStyle(size=self.page.window_height * 0.0185, color='white',
+                                                           weight='bold'),
+                                      width=400, on_change=self.dropdown_changed,
                                       border_color='gray', border_width=1.5,
-                                      border_radius=10, options=[
-                                          ft.dropdown.Option("улица Мира, 4А, Владимир"),
-                                          ft.dropdown.Option("Октябрьский проспект, 16, Владимир")])
-                                  ], alignment=MainAxisAlignment.SPACE_BETWEEN),
-                    Container(height=self.page.window_height * 0.1296),]
+                                      border_radius=10, options=options
+                                          )
+                                  ], alignment=MainAxisAlignment.SPACE_BETWEEN),]
                     ),
                     Row(
                         controls=[
                             TextButton(content=Row(controls=[
-                                Text(value='Назад', size=self.page.window_height * 0.037),
-                                Icon(icons.ARROW_LEFT, size=self.page.window_height * 0.1296)
+                                Text(value='Назад', size=self.page.window_height * 0.024),
+                                Icon(icons.ARROW_LEFT, size=self.page.window_height * 0.1056)
                             ]), on_click=self.find_to_back),
                             TextButton(content=Row(controls=[
-                                Icon(icons.ARROW_RIGHT, size=self.page.window_height * 0.1296),
-                                Text(value='Далее', size=self.page.window_height * 0.037)
+                                Icon(icons.ARROW_RIGHT, size=self.page.window_height * 0.1056),
+                                Text(value='Далее', size=self.page.window_height * 0.024)
                             ]), on_click=self.next_page),
                         ], alignment=MainAxisAlignment.SPACE_BETWEEN
                     )
@@ -238,7 +375,9 @@ class Shop_box():
 
     def dropdown_changed(self, e):
         self.sort_list = e.control.value
-        print(self.sort_list)
+        self.value_page.sort_list_korzina(e.control.value)
+        self.generate_korzina_list()
+        self.page.update()
     def minus_click(self, e):
         if int(self.txt_number.value) > 1:
             self.txt_number.value = int(self.txt_number.value) - 1
@@ -314,11 +453,11 @@ class Shop_box():
                         i.price,
                         Container(Text(value='Количество товара в штуках: ' + str(i.count), size=20, color='#75602F',
                                        text_align='CENTER'), width=500)
-                    ])
+                    ], alignment=MainAxisAlignment.SPACE_BETWEEN)
                 ]
                 ),
                 # on_click=self.element_click, bgcolor='#ADC4CE', height=200, border_radius=10)
-                on_click=self.element_click, bgcolor=colors.WHITE, height=250, border_radius=10)
+                on_click=self.element_click, bgcolor=colors.WHITE, height=250, border_radius=10, padding=padding.all(10))
             self.list_korzina_product.content.controls.append(r)
 
     def shop_box(self):
@@ -354,19 +493,27 @@ class Shop_box():
         self.block_bottom_finder = Row(controls=[self.len_korzina,
                                                  # Row(controls=[Text('Сортировать по: ', size=22, weight=ft.FontWeight.BOLD), Dropdown(value='Названию',width=400, on_change=self.dropdown_changed, text_size= 22,
                                                  Row(controls=[Dropdown(value='Названию', label="Сортировать по:",
+                                                                        # bgcolor='#9966cc',
+                                                                        bgcolor='#667FBA',
+                                                                        focused_bgcolor='#667FBA',
+                                                                        filled=True,
                                                                         label_style=TextStyle(
                                                                             size=self.page.window_height * 0.0225,
                                                                             color='white',
-                                                                            weight='bold'), width=400,
-                                                                        on_change=self.dropdown_changed, text_size=18,
+                                                                            weight='bold'),
+                                                                        width=400,
+                                                                        text_style=TextStyle(
+                                                                            size=self.page.window_height * 0.0185,
+                                                                            color='white',
+                                                                            weight='bold'),
+                                                                        on_change=self.dropdown_changed,
                                                                         border_color='gray', border_width=1.5,
                                                                         border_radius=10, options=[
                                                          ft.dropdown.Option("Названию"),
                                                          ft.dropdown.Option("Минимальной цене"),
                                                          ft.dropdown.Option("Максимальной цене"),
-                                                         ft.dropdown.Option("По наличию всего"),
-                                                         ft.dropdown.Option("По наличию в магазине Пятёрочка"),
-                                                         ft.dropdown.Option("По наличию в магазине КБ")])])],
+                                                         ft.dropdown.Option("Магазин Бристоль"),
+                                                         ft.dropdown.Option("Магазин КБ")])])],
                                        alignment=MainAxisAlignment.SPACE_BETWEEN)
 
         page_1 = Container(
@@ -388,12 +535,12 @@ class Shop_box():
                     Row(
                         controls=[
                             TextButton(content=Row(controls=[
-                                Text(value='Назад', size=self.page.window_height * 0.037),
-                                Icon(icons.ARROW_LEFT, size=self.page.window_height * 0.1296)
+                                Text(value='Назад', size=self.page.window_height * 0.024),
+                                Icon(icons.ARROW_LEFT, size=self.page.window_height * 0.1056)
                             ]), on_click=self.find_to_back),
                             TextButton(content=Row(controls=[
-                                Icon(icons.ARROW_RIGHT, size=self.page.window_height * 0.1296),
-                                Text(value='Рассчитать!', size=self.page.window_height * 0.037)
+                                Icon(icons.ARROW_RIGHT, size=self.page.window_height * 0.1056),
+                                Text(value='Рассчитать!', size=self.page.window_height * 0.024)
                             ]), on_click=self.to_calc_page),
                         ], alignment=MainAxisAlignment.SPACE_BETWEEN
                     )
@@ -534,11 +681,10 @@ class AppFinder:
     def find_product(self, e):
         # if e.control.value != '':
         self.list_find_product.bgcolor = '#2E4374'
-        self.list_find_product.height = self.page.window_height * 0.375
+        self.list_find_product.height = self.page.window_height * 0.440
         self.list_find_product.content.controls.clear()
         self.list_find_product.content.controls.append(Container(height=1))
         self.generate_product_list(e.control.value)
-        self.count_product_find.value = 'Найдено $ товаров!'
 
         self.page.update()
 
@@ -549,28 +695,6 @@ class AppFinder:
     # self.generate_recom_list()
     # self.page.update()
 
-    def generate_recom_list(self):
-        for i in range(5):
-            r = Container(
-                content=Row(controls=[
-                    Container(width=15),
-                    Image(src='..\\resources\\vodka_medved.png', width=256, height=190, fit=ft.ImageFit.NONE,
-                          repeat=ft.ImageRepeat.NO_REPEAT,
-                          border_radius=ft.border_radius.all(10)),
-                    Container(width=15),
-                    Column(controls=[
-                        Container(height=30),
-                        Container(
-                            content=Text(value='"Вино Пьетраме Монтепульчано Д`Абруццо DOP красное полусухое"' + str(i),
-                                         size=24, color='#1d1e33', max_lines=3, text_align='CENTER'), width=500),
-                        Container(content=
-                                  Text(value='Италия, 0.75 л., Абруццо, 13%', size=20, color='#53377a',
-                                       text_align='CENTER'), width=500)
-                    ])
-                ]
-                ),
-                on_click=self.element_click, bgcolor='#ADC4CE', height=200, border_radius=10)
-            self.list_find_product.content.controls.append(r)
 
     def minus_click(self, e):
         if int(self.txt_number.value) > 1:
@@ -599,9 +723,11 @@ class AppFinder:
                 ft.Text(value=old_value + 1, size=20, weight=ft.FontWeight.BOLD, color='#fb2b3a')
             ]
         )
+
         self.product.count = self.txt_number.value
         self.value_page.add_korzina_product(self.product)
-
+        self.list_find_product.content.controls.clear()
+        self.generate_product_list(self.find_label.value)
         self.page.update()
 
     def end_dublicate(self, e):
@@ -651,75 +777,157 @@ class AppFinder:
         self.dialog.open = True
         self.page.update()
 
-    def generate_product_list(self, zapros):
-        for i in range(80):
+
+    def right_padej(self, n):
+        if (n % 100 / 10 == 1):
+            return "товаров"
+        if (n % 10 == 1):
+            return "товар"
+        if (n % 10 == 2 or n % 10 == 3 or n % 10 == 4):
+            return "товарa"
+        else:
+            return "товаров"
+
+
+    def sort_res(self, res):
+        if self.sort_list == 'Названию':
+            return res
+        elif self.sort_list == 'Минимальной цене':
+            a = sorted(res.items(), key=lambda x: float(x[1]['price'].replace(' ₽', '')))
+            res_new = {}
+            for i, val in a:
+                res_new[i] = val
+            return res_new
+        elif self.sort_list == 'Максимальной цене':
+            a = sorted(res.items(), key=lambda x: float(x[1]['price'].replace(' ₽', '')), reverse=True)
+            res_new = {}
+            for i, val in a:
+                res_new[i] = val
+            return res_new
+        elif self.sort_list == 'Магазин КБ':
+            a = sorted(res.items(), key=lambda x: x[1]['name_shop'], reverse=True)
+            res_new = {}
+            for i, val in a:
+                res_new[i] = val
+            return res_new
+        elif self.sort_list == 'Магазин Бристоль':
+            a = sorted(res.items(), key=lambda x: x[1]['name_shop'])
+            res_new = {}
+            for i, val in a:
+                res_new[i] = val
+            return res_new
+        else:
+            return res
+    def generate_product_list(self, e):
+        res = find_products.search_products(e)
+        self.count_product_find.value = f'Найдено {len(res)} {self.right_padej(len(res))}!'
+        res = self.sort_res(res)
+        if len(res) > 100:
+            stop_res = res[100]
+        for i in res:
+            if len(res) > 100:
+                if res[i]['name'] == stop_res['name']:
+                    break
+            if res[i]['name_shop'] == 'bristol':
+                shop_name = Row(controls=[Image(src='..\\resources\\icons_shops\\5.jpg', width=25, height=25),
+                                          Text('Бристоль', color='#1d1e33', size=20)])
+            elif res[i]['name_shop'] == 'КБ':
+                shop_name = Row(controls=[Image(src='..\\resources\\icons_shops\\kb.png', width=25, height=25),
+                              Text('Красное и белое', color='#1d1e33', size=20)])
+            else:
+                shop_name = [
+                    Row(controls=[Image(src='..\\resources\\icons_shops\\5.jpg', width=25, height=25),
+                                  Text('Пятёрочка', color='#1d1e33', size=20)]),
+                    Row(controls=[Image(src='..\\resources\\icons_shops\\kb.png', width=25, height=25),
+                                  Text('Красное и белое', color='#1d1e33', size=20)])]
+            self.product_add_bool = Container()
+            for product in self.value_page.list_korzina:
+                if product.name.content.content.value == res[i]['name']:
+                    self.product_add_bool = Tooltip(message='Товар уже добавлен!',
+                            content=Container(Icon(icons.CHECK_BOX, color='green', size=42)),
+                            bgcolor='#2E4374', text_style=ft.TextStyle(size=15, color=ft.colors.WHITE),
+                            wait_duration=200, border=border.all(1, 'gray'))
+                    break
+
             r = Container(
                 content=Row(controls=[
                     Container(width=15),
-                    Container(Image(src='..\\resources\\vodka_medved.png', fit=ft.ImageFit.NONE,
-                                    repeat=ft.ImageRepeat.NO_REPEAT),
+                    Container(Image(src=res[i]['pic_url'], width=210, height=200),
                               border_radius=ft.border_radius.all(10), width=200, height=190, bgcolor=colors.WHITE,
                               padding=padding.all(5)),
-                    Container(width=15),
+                    Container(width=1),
                     Column(controls=[
                         Container(height=self.page.window_height * 0.0139),
                         Container(content=Tooltip(message='Наличие товара в магазине', content=Row(controls=
-                        [
-                            Row(controls=[Image(src='..\\resources\\icons_shops\\5.jpg', width=25, height=25),
-                                          Text('Пятёрочка', color='#1d1e33', size=20)]),
-                            Row(controls=[Image(src='..\\resources\\icons_shops\\kb.png', width=25, height=25),
-                                          Text('Красное и белое', color='#1d1e33', size=20)])],
+                        [shop_name],
                             alignment=MainAxisAlignment.CENTER), bgcolor='#2E4374',
                                                   text_style=ft.TextStyle(size=15, color=ft.colors.WHITE),
-                                                  wait_duration=200), width=500),
+                                                  wait_duration=200, border=border.all(1, 'gray')), width=500),
 
                         Container(content=
-                                  Tooltip(message='Название товара', content=
-                                  Text(value='"Вино Пьетраме Монтепульчано Д`Абруццо DOP красное полусухое"' + str(i),
+                                  Tooltip(message='Описание товара', content=
+                                  Text(value=res[i]['name'],
                                        size=24, color='#1d1e33', max_lines=3, text_align='CENTER'),
                                           bgcolor='#2E4374', text_style=ft.TextStyle(size=15, color=ft.colors.WHITE),
-                                          wait_duration=200),
+                                          wait_duration=200, border=border.all(1, 'gray')),
                                   width=500),
-                        Container(content=Tooltip(message='Информация о товаре', content=
-                        Text(value='Италия, 0.75 л., Абруццо, 13%', size=20, color='#53377a', text_align='CENTER'),
-                                                  bgcolor='#2E4374',
-                                                  text_style=ft.TextStyle(size=15, color=ft.colors.WHITE),
-                                                  wait_duration=200),
-                                  width=500),
+                        Container(),
+                        # Container(content=Tooltip(message='Информация о товаре', content=
+                        # Text(value='Италия, 0.75 л., Абруццо, 13%', size=20, color='#53377a', text_align='CENTER'),
+                        #                           bgcolor='#2E4374',
+                        #                           text_style=ft.TextStyle(size=15, color=ft.colors.WHITE),
+                        #                           wait_duration=200, border=border.all(1, 'gray')),
+                        #           width=500),
                         Container(content=Tooltip(message='Диапозон цен', content=
-                        Text(value='120 - 350' + '₽', size=24, color='#1d1e33', text_align='CENTER',
+                        Text(value=res[i]['price'], size=24, color='#1d1e33', text_align='CENTER',
                              weight=FontWeight.BOLD), bgcolor='#2E4374',
                                                   text_style=ft.TextStyle(size=15, color=ft.colors.WHITE),
-                                                  wait_duration=200),
+                                                  wait_duration=200, border=border.all(1, 'gray')),
                                   width=500),
 
-                    ]),
+                    ], alignment=MainAxisAlignment.SPACE_BETWEEN),
+                    Container(width=15),
+                    Container(
+                    Column(controls=[
                     Container(alignment=alignment.top_center, content=Tooltip(message='Количество товара в магазинах',
                                                                               content=Text('123', size=22,
-                                                                                           color='black',
+                                                                                           color='#0F214B',
                                                                                            weight='bold'),
                                                                               bgcolor='#2E4374',
                                                                               text_style=ft.TextStyle(size=15,
                                                                                                       color=ft.colors.WHITE),
-                                                                              wait_duration=200), padding=5)
+                                                                              wait_duration=200), padding=5),
+                    self.product_add_bool,
+                    Tooltip(message='Добавить товар!',content=Container(Icon(icons.PLUS_ONE, color='red', size=42)),
+                                bgcolor='#2E4374', text_style=ft.TextStyle(size=15, color=ft.colors.WHITE),
+                                wait_duration=200, border=border.all(1, 'gray')),
+                        ], alignment=MainAxisAlignment.SPACE_BETWEEN), padding=padding.only(bottom=5)
+                    )
 
                 ]),
-                # on_click=self.element_click, bgcolor='#ADC4CE', height=200, border_radius=10)
+                # on_click=self.element_click, bgcolor='#667FBA', height=220, border_radius=10)
                 on_click=self.element_click, bgcolor=colors.WHITE, height=220, border_radius=10)
             self.list_find_product.content.controls.append(r)
 
     def dropdown_changed(self, e):
         self.sort_list = e.control.value
-        print(self.sort_list)
+        self.list_find_product.bgcolor = '#2E4374'
+        self.list_find_product.height = self.page.window_height * 0.440
+        self.list_find_product.content.controls.clear()
+        self.list_find_product.content.controls.append(Container(height=1))
+        if self.find_label.value != '':
+            self.generate_product_list(self.find_label.value)
+        self.page.update()
 
 
     def finder_app(self):
         self.create_appbar()
         self.list_find_product = Container(content=Column(
-            height=self.page.window_height * 0.375,
-            scroll='auto',
+            height=self.page.window_height * 0.440,
+            scroll='ALWAYS',
             controls=[
             ]
+
         )
         )
 
@@ -727,17 +935,23 @@ class AppFinder:
         self.block_bottom_finder = Row(controls=[self.count_product_find,
                                                  # Row(controls=[Text('Сортировать по: ', size=22, weight=ft.FontWeight.BOLD), Dropdown(value='Названию',width=400, on_change=self.dropdown_changed, text_size= 22,
                                                  Row(controls=[Dropdown(value='Названию', label="Сортировать по:",
+                                                                        # bgcolor='#7B67BB',
+                                                                        bgcolor='#667FBA',
+                                                                        focused_bgcolor='#667FBA',
+                                                                        filled=True,
                                                                         label_style=TextStyle(size=self.page.window_height * 0.0225, color='white',
                                                                                               weight='bold'), width=400,
-                                                                        on_change=self.dropdown_changed, text_size=18,
+                                                                        text_style=TextStyle(size=self.page.window_height * 0.0185, color='white',
+                                                                                              weight='bold'),
+                                                                        on_change=self.dropdown_changed,
                                                                         border_color='gray', border_width=1.5,
                                                                         border_radius=10, options=[
                                                          ft.dropdown.Option("Названию"),
                                                          ft.dropdown.Option("Минимальной цене"),
                                                          ft.dropdown.Option("Максимальной цене"),
                                                          ft.dropdown.Option("По наличию всего"),
-                                                         ft.dropdown.Option("По наличию в магазине Пятёрочка"),
-                                                         ft.dropdown.Option("По наличию в магазине КБ")])])],
+                                                         ft.dropdown.Option("Магазин Бристоль"),
+                                                         ft.dropdown.Option("Магазин КБ")])])],
                                        alignment=MainAxisAlignment.SPACE_BETWEEN)
         self.find_label = TextField(
             prefix_icon=ft.icons.SEARCH,
@@ -758,7 +972,7 @@ class AppFinder:
                 controls=[
                     Column( controls=[
                     Container(height=self.page.window_height*0.009),
-                    Text('Добрый день, давайте выберем товары необходимые вам: ', size=self.page.window_height * 0.029, weight='bold'),
+                    Text('Добрый день, давайте выберем товары необходимые вам: ', size=self.page.window_height * 0.021, weight='bold'),
                     Container(height=self.page.window_height*0.009),
                     self.find_label,
                     self.block_bottom_finder,
@@ -767,12 +981,12 @@ class AppFinder:
                     Row(
                         controls=[
                             TextButton(content=Row(controls=[
-                                Text(value='Назад', size=self.page.window_height * 0.037),
-                                Icon(icons.ARROW_LEFT, size=self.page.window_height * 0.1296)
+                                Text(value='Назад', size=self.page.window_height * 0.024),
+                                Icon(icons.ARROW_LEFT, size=self.page.window_height * 0.1056)
                             ]), on_click=self.find_to_back),
                             TextButton(content=Row(controls=[
-                                Icon(icons.ARROW_RIGHT, size=self.page.window_height * 0.1296),
-                                Text(value='В корзину', size=self.page.window_height * 0.037)
+                                Icon(icons.ARROW_RIGHT, size=self.page.window_height * 0.1056),
+                                Text(value='В корзину', size=self.page.window_height * 0.024)
                             ]), on_click=self.korzina_click),
                         ], alignment=MainAxisAlignment.SPACE_BETWEEN
                     )
@@ -804,8 +1018,8 @@ class AppMain:
                 [
                     Container(width=100),
                     TextButton(content=Row(controls=[
-                        Icon(icons.ARROW_RIGHT, size=self.page.window_height * 0.1296),
-                        Text(value='Вперёд!', size=self.page.window_height * 0.037)
+                        Icon(icons.ARROW_RIGHT, size=self.page.window_height * 0.1056),
+                        Text(value='Вперёд!', size=self.page.window_height * 0.024)
 
                     ]), on_click=self.to_next)
                 ], alignment=MainAxisAlignment.SPACE_BETWEEN))
@@ -824,7 +1038,6 @@ class AppMain:
         # self.page.vertical_alignment = 'center'
         self.TextHeaderWelcome = Text('Привет, пришли за выгодными покупками?🤨', style="headlineLarge",
                                       text_align='center')
-        print(self.page.window_height)
         self.create_appbar()
         self.start_view = Container(
             width=1000,
@@ -842,8 +1055,8 @@ class AppMain:
                 [
                     Container(width=100),
                     TextButton(content=Row(controls=[
-                        Icon(icons.ARROW_RIGHT, size=self.page.window_height*0.1296),
-                        Text(value='Вперёд!', size=self.page.window_height*0.037)
+                        Icon(icons.ARROW_RIGHT, size=self.page.window_height* 0.1056),
+                        Text(value='Вперёд!', size=self.page.window_height*0.024)
 
                     ]), on_click=self.to_next)
                 ], alignment=MainAxisAlignment.SPACE_BETWEEN))
@@ -890,7 +1103,6 @@ def main(page: Page):
     # page.window_width = size[0]
     page.window_max_height = size[1]
     page.window_max_width = size[0]
-    print(size, size[0], size[1])
     page.window_maximized = True
     page.window_resizable = False
     value_korzina = Value_page()

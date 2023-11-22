@@ -38,7 +38,7 @@ def search_products(search_query, database_file='db.db3'):
                     'pic_url': unique_results[i][2],
                     'address': unique_results[i][3].split("|"),
                     'name_shop': unique_results[i][4],
-                    'count': unique_results[i][5].split(",")
+                    'count': [int(i) for i in unique_results[i][5].split(",")]
                     } for i in range (len(unique_results))}
     except sqlite3.Error as e:
         print(f"Ошибка при выполнении поиска: {e}")

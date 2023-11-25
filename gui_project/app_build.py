@@ -12,9 +12,9 @@ import find_products
 import result_find
 
 class Calc_reclam():
-    def __init__(self, page, value_page):
+    def __init__(self, page, result):
         self.page = page
-        self.value_page = value_page
+        self.result = result
         self.calc_reclam()
         self.page.update()
         self.calculation()
@@ -105,6 +105,9 @@ class Calc_param():
         self.value_page = value_page
         self.calc_param()
         self.page.update()
+        self.address = ''
+        self.mode = ''
+        self.effects_mode = ''
 
     def korzina_click(self, e):
         self.page.controls.clear()
@@ -154,58 +157,26 @@ class Calc_param():
         client = Geocode('9fa910c6-ae58-4d88-972f-d0d5aae763ca')
         response = client.geocode(self.find_geolo.value + ' ' + self.find_geolo.suffix_text, sco='latlong')
         coordinates = response['response']['GeoObjectCollection']['featureMember'][0]['GeoObject']['Point']['pos']
-        print(response)
-        print(coordinates)
+        name_img = response['response']['GeoObjectCollection']['featureMember'][0]['GeoObject'][
+            'metaDataProperty']['GeocoderMetaData']['text']
         client = Static(url='1.x')
-        client.load_image(path='user\\' + e.control.value + '.png', l=['map'], ll=coordinates.split(' '), z=16,
+        client.load_image(path='user\\' + name_img + '.png', l=['map'], ll=coordinates.split(' '), z=16,
                           scale=1.2, size=[350, 350],
                           pt=[
                               coordinates.replace(' ', ',') + ',pmwtm1']
                           )
+        self.address = [coordinates, name_img]
         time.sleep(1)
-        self.geolo_pos.content = Image(src='user\\' + e.control.value + '.png')
-        dlg_modal = ft.AlertDialog(
-            modal=True,
-            title=ft.Text("Это геолокация, та что вы указали?", weight=FontWeight.BOLD, size=24),
-            content=self.geolo_pos,
-            actions=[
-                ft.TextButton(content=Text("Нет!", weight=FontWeight.BOLD, size=20),
-                              on_click=self.exit_add_click),
-                ft.TextButton(content=Text("Да!", weight=FontWeight.BOLD, size=20),
-                              on_click=self.exit_add_click),
-            ],
-            actions_alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
-        self.dialog = dlg_modal
-        self.page.dialog = self.dialog
-        self.dialog.open = True
-
-        self.page.update()
-
-    def radiogroup_changed(self, e):
-        print(e.control.value)
-    def dropdown_changed(self, e):
-        self.find_geolo.value = e.control.value
-        client = Geocode('9fa910c6-ae58-4d88-972f-d0d5aae763ca')
-        print(self.find_geolo.value, self.find_geolo.suffix_text)
-        response = client.geocode(self.find_geolo.value + ' ' + self.find_geolo.suffix_text, sco='latlong')
-        coordinates = response['response']['GeoObjectCollection']['featureMember'][0]['GeoObject']['Point']['pos']
-        print(coordinates)
-        client = Static(url='1.x')
-        client.load_image(path='user\\'+self.find_geolo.value+'.png', l=['map'], ll=coordinates.split(' '), z=16, scale=1.2, size=[350, 350],
-                          pt=[
-                              coordinates.replace(' ', ',')+',pmwtm1']
-                          )
-        time.sleep(1)
-        self.geolo_pos.content = Image(src='user\\'+self.find_geolo.value+'.png')
+        self.geolo_pos.content = Image(src='user\\' + name_img + '.png')
         dlg_modal = ft.AlertDialog(
             modal=True,
             title=ft.Text("Это геолокация та, что вы указали?", weight=FontWeight.BOLD, size=24),
             content=self.geolo_pos,
             actions=[
                 ft.TextButton(content=Text("Нет!", weight=FontWeight.BOLD, size=20),
-                              on_click=self.exit_add_click),
+                              on_click=self.exit_click),
                 ft.TextButton(content=Text("Да!", weight=FontWeight.BOLD, size=20),
-                              on_click=self.exit_add_click),
+                              on_click=self.exit_ok_click),
             ],
             actions_alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
         self.dialog = dlg_modal
@@ -214,25 +185,105 @@ class Calc_param():
 
         self.page.update()
 
-    def exit_add_click(self, e):
+    def dropdown_changed_mode(self, e):
+        self.mode = e.control.value
+
+    def dropdown_changed_effects(self, e):
+        self.effects_mode = e.control.value
+    def dropdown_changed(self, e):
+        self.find_geolo.value = e.control.value
+        client = Geocode('9fa910c6-ae58-4d88-972f-d0d5aae763ca')
+        response = client.geocode(self.find_geolo.value + ' ' + self.find_geolo.suffix_text, sco='latlong')
+        coordinates = response['response']['GeoObjectCollection']['featureMember'][0]['GeoObject']['Point']['pos']
+        client = Static(url='1.x')
+        name_img = response['response']['GeoObjectCollection']['featureMember'][0]['GeoObject'][
+            'metaDataProperty']['GeocoderMetaData']['text']
+        client.load_image(path='user\\'+name_img+'.png', l=['map'], ll=coordinates.split(' '), z=16, scale=1.2, size=[350, 350],
+                          pt=[
+                              coordinates.replace(' ', ',')+',pmwtm1']
+                          )
+        self.address = [coordinates, name_img]
+        time.sleep(1)
+        self.geolo_pos.content = Image(src='user\\'+name_img+'.png')
+        dlg_modal = ft.AlertDialog(
+            modal=True,
+            title=ft.Text("Это геолокация та, что вы указали?", weight=FontWeight.BOLD, size=24),
+            content=self.geolo_pos,
+            actions=[
+                ft.TextButton(content=Text("Нет!", weight=FontWeight.BOLD, size=20),
+                              on_click=self.exit_click),
+                ft.TextButton(content=Text("Да!", weight=FontWeight.BOLD, size=20),
+                              on_click=self.exit_ok_click),
+            ],
+            actions_alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
+        self.dialog = dlg_modal
+        self.page.dialog = self.dialog
+        self.dialog.open = True
+
+        self.page.update()
+
+    def exit_ok_click(self, e):
         self.dialog.open = False
         self.page.update()
 
+    def exit_click(self, e):
+        self.address = ''
+        self.dialog.open = False
+        self.page.update()
+
+
+    def write_save_address(self, address):
+        with open('user\\save_addr', encoding='utf-8', mode='r') as file:
+            for line in file.readlines():
+                if line.rstrip() == address:
+                    return
+        with open('user\\save_addr', encoding='utf-8', mode='a') as file:
+            file.write('\n'+address)
+            file.close()
+
     def next_page(self, e):
-        print(self.find_geolo.value, self.find_geolo.suffix_text)
+        products = []
+        counts = []
+        shops = []
+        prices = []
+        user_counts = []
+        adr = self.address
+        if adr == '':
+            dlg_modal = ft.AlertDialog(
+                modal=True,
+                title=ft.Text("Укажите ваше местоположение!", weight=FontWeight.BOLD, size=24),
+                actions=[
+                    ft.Text(),
+                    ft.TextButton(content=Text("Хорошо", weight=FontWeight.BOLD, size=20),
+                                  on_click=self.exit_ok_click),
+                ],
+                actions_alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
+            self.dialog = dlg_modal
+            self.page.dialog = self.dialog
+            self.dialog.open = True
+
+            self.page.update()
+            return
+        self.write_save_address(adr[1].split('Владимир, ')[1])
+        effects_mode = self.effects_mode
+        auto_mode = self.mode
+        if effects_mode == '':
+            effects_mode = self.page.controls[1].content.controls[0].controls[3].controls[0].value
+        if auto_mode == '':
+            auto_mode = self.page.controls[1].content.controls[0].controls[3].controls[1].value
+
         for i in self.value_page.list_korzina:
             res = find_products.search_products(i.name.content.content.value)
-            print(res)
-        self.result = result_find.Result()
-        self.page.controls.clear()
-        Calc_reclam(self.page, self.value_page)
-        # response = client.geocode(self.find_geolo.value+' '+self.find_geolo.suffix_text, sco='latlong')
-        # # data = json.loads(response)
-        # print(response, type(response))
-        # coordinates = response['response']['GeoObjectCollection']['featureMember'][0]['GeoObject']['Point']['pos']
-        # # coordinates = response['response']['GeoObjectCollection']['featureMember'][0]
-        # print(coordinates)
+            user_counts.append(i.count)
+            products.append(res[0]['name'])
+            prices.append(res[0]['price'])
+            counts.append(res[0]['count'])
+            shops.append(res[0]['address'])
 
+        self.result = result_find.Result(products, prices, counts, shops, adr, effects_mode, auto_mode, user_counts)
+        print(products, prices, counts, shops, adr, effects_mode, auto_mode, user_counts)
+        self.page.controls.clear()
+        Calc_reclam(self.page, self.result)
 
     def calc_param(self):
         self.create_appbar()
@@ -247,8 +298,7 @@ class Calc_param():
 
                           text_style=TextStyle(size=self.page.window_height * 0.0185, color='white',
                                  weight='bold'),
-                          # width=400, on_change=self.dropdown_changed, text_size=18,
-                          width=400,
+                          width=400, on_change=self.dropdown_changed_effects,
                           border_color='gray', border_width=1.5,
                           border_radius=10, options=[
                               ft.dropdown.Option("Самый быстрый"),
@@ -266,8 +316,7 @@ class Calc_param():
 
                           text_style=TextStyle(size=self.page.window_height * 0.0185, color='white',
                                                  weight='bold'),
-                          # width=400, on_change=self.dropdown_changed, text_size=18,
-                          width=400,
+                          width=400, on_change=self.dropdown_changed_mode,
                           border_color='gray', border_width=1.5,
                           border_radius=10, options=[
                               ft.dropdown.Option("Пешком"),
@@ -843,14 +892,14 @@ class AppFinder:
                 if res[i]['name'] == stop_res['name']:
                     break
             if res[i]['name_shop'] == 'bristol':
-                shop_name = Row(controls=[Image(src='..\\resources\\icons_shops\\5.jpg', width=25, height=25),
+                shop_name = Row(controls=[Image(src='..\\resources\\icons_shops\\bristol.jpg', width=25, height=25),
                                           Text('Бристоль', color='#1d1e33', size=20)])
             elif res[i]['name_shop'] == 'КБ':
                 shop_name = Row(controls=[Image(src='..\\resources\\icons_shops\\kb.png', width=25, height=25),
                               Text('Красное и белое', color='#1d1e33', size=20)])
             else:
                 shop_name = [
-                    Row(controls=[Image(src='..\\resources\\icons_shops\\5.jpg', width=25, height=25),
+                    Row(controls=[Image(src='..\\resources\\icons_shops\\bristol.jpg', width=25, height=25),
                                   Text('Пятёрочка', color='#1d1e33', size=20)]),
                     Row(controls=[Image(src='..\\resources\\icons_shops\\kb.png', width=25, height=25),
                                   Text('Красное и белое', color='#1d1e33', size=20)])]

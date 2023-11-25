@@ -3,11 +3,12 @@
 
 class Result():
 
-    def build_find(self, products, shops):
+    def __init__(self, products, prices, counts, shops, adr, effects_mode, auto_mode, user_counts):
         self.products = products
+        self.prices = prices
+        self.counts = counts
         self.shops = shops
-
-    def build_param(self, adr, current_mode, auto_mode):
         self.adr = adr
-        self.current_mode = current_mode
+        self.effects_mode = effects_mode
         self.auto_mode = auto_mode
+        self.user_counts = user_counts

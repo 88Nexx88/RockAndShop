@@ -37,7 +37,6 @@ class AutomaticImageCarousel(UserControl):
 	def animate(self):
 		ind = 0
 		indexes = [Icon(icons.CIRCLE_OUTLINED,size=11) for _ in self.images_list]
-		print(self.images_list)
 		while True:
 		    indexes[ind-1] = Icon(icons.CIRCLE_OUTLINED,size=11)
 		    indexes[ind] = Icon(icons.CIRCLE_ROUNDED,size=15)

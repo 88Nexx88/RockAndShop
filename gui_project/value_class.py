@@ -97,13 +97,14 @@ class Value_page():
 
 class Product():
 
-    def __init__(self, name, info, count, image, shops, price):
+    def __init__(self, name, info, count, image, shops, price, max_count):
         self.name = name
         self.info = info
         self.count = count
         self.image = image
         self.shops = shops
         self.price = price
+        self.max_count = max_count
     
 
 

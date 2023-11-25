@@ -18,7 +18,7 @@ def search_products(search_query, database_file='db.db3'):
             results = []
 
             # Создаем SQL-запрос с условиями LIKE для каждого слова в запросе
-            sql_query = "SELECT name, address, pic_url, price, name_shop FROM unique_products WHERE "
+            sql_query = "SELECT * FROM unique_products WHERE "
             sql_conditions = []
             for term in search_terms:
                 sql_conditions.append("name LIKE ?")
@@ -34,17 +34,17 @@ def search_products(search_query, database_file='db.db3'):
         unique_results.sort()
 
         return {i: {'name': unique_results[i][0],
-                        'address': unique_results[i][1].split("|"),
-                        'pic_url': unique_results[i][2],
-                        'price': unique_results[i][3],
-                        'name_shop': unique_results[i][4]
+                    'price': unique_results[i][1],
+                    'pic_url': unique_results[i][2],
+                    'address': unique_results[i][3].split("|"),
+                    'name_shop': unique_results[i][4],
+                    'count': [int(i) for i in unique_results[i][5].split(",")]
                     } for i in range (len(unique_results))}
     except sqlite3.Error as e:
         print(f"Ошибка при выполнении поиска: {e}")
         return None
-#
+
 # res = search_products(input("Введите название продукта: "))
-# print(type(res))
 # for i in res:
-#     print(f"---- {i} ----  \n {res[i]['name']}\n\n{res[i]['address']}\n{res[i]['pic_url']}\n{res[i]['price']}\n{res[i]['name_shop']}")
+#     print(f"---- {i} ----  \n {res[i]['name']}\n{res[i]['address']}\n{res[i]['pic_url']}\n{res[i]['price']}\n{res[i]['name_shop']}\n{res[i]['count']}")
 #     print(os.path.exists(f'{res[i]["pic_url"]}'))

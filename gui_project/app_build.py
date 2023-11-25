@@ -9,6 +9,7 @@ from ymaps import *
 from AutomaticImageCarousel import AutomaticImageCarousel
 from value_class import *
 import find_products
+import result_find
 
 class Calc_reclam():
     def __init__(self, page, value_page):
@@ -55,10 +56,16 @@ class Calc_reclam():
         self.create_appbar()
         self.progress_bar = Container()
         self.progress_bar.content = Column(controls=[Text(value='', style="headlineSmall"),
-                                                     ft.ProgressBar(width=900, height=40, bgcolor="white")],
+                                                     ft.ProgressBar(width=self.page.window_width * 0.75, height=self.page.window_height * 0.037, bgcolor="white")],
                                            alignment=alignment.center)
         self.progress_bar.content.controls[0].value = 'Рассчитываем вашу покупку...'
-        images = [['..\\resources\\reclam\\vlsu.png', 'https://prkom.vlsu.ru/'],['..\\resources\\reclam\\izi1.png', 'http://izi.vlsu.ru/index.php?id=2'], ['..\\resources\\reclam\\izi2.png', 'https://vk.com/izivlsu']]
+        if self.page.window_height > 900:
+            images = [['..\\resources\\reclam\\1080\\vlsu.png', 'https://prkom.vlsu.ru/'],['..\\resources\\reclam\\1080\\izi1.png', 'http://izi.vlsu.ru/index.php?id=2'], ['..\\resources\\reclam\\1080\\izi2.png', 'https://vk.com/izivlsu']]
+        else:
+            images = [['..\\resources\\reclam\\768\\vlsu.png', 'https://prkom.vlsu.ru/'],
+                      ['..\\resources\\reclam\\768\\izi1.png', 'http://izi.vlsu.ru/index.php?id=2'],
+                      ['..\\resources\\reclam\\768\\izi2.png', 'https://vk.com/izivlsu']]
+
         page_1 = Container(
             width=1000,
             height=self.page.window_height * 0.87,
@@ -69,16 +76,16 @@ class Calc_reclam():
             content=Column(
                 alignment=MainAxisAlignment.SPACE_BETWEEN,
                 controls=[
-                    Column(controls=[
+                    Column(alignment=MainAxisAlignment.SPACE_BETWEEN, controls=[
                         Container(height=10),
                         Container(content=Text('Пока программа рассчитывает оптимальный вариант покупки, ознакомьтесь с предложением наших спонсоров!',
                                                size=self.page.window_height * 0.0296,
                                                weight='bold'), alignment=alignment.center, width=900),
                             Container(content=AutomaticImageCarousel(
                                 images_list=images,
-                                perseverance_time=5.0,
+                                perseverance_time=7.0,
                                 animations=[ft.AnimationCurve.EASE_IN, ft.AnimationCurve.EASE_IN_OUT_CUBIC_EMPHASIZED],
-                                descriptive=True), height=self.page.window_height * 0.54, width=900)
+                                descriptive=True), height=self.page.window_height * 0.56, alignment=alignment.center)
                             ]
                     ),
                     self.progress_bar,
@@ -212,8 +219,11 @@ class Calc_param():
         self.page.update()
 
     def next_page(self, e):
-        client = Geocode('9fa910c6-ae58-4d88-972f-d0d5aae763ca')
         print(self.find_geolo.value, self.find_geolo.suffix_text)
+        for i in self.value_page.list_korzina:
+            res = find_products.search_products(i.name.content.content.value)
+            print(res)
+        self.result = result_find.Result()
         self.page.controls.clear()
         Calc_reclam(self.page, self.value_page)
         # response = client.geocode(self.find_geolo.value+' '+self.find_geolo.suffix_text, sco='latlong')
@@ -386,7 +396,8 @@ class Shop_box():
         self.page.update()
 
     def plus_click(self, e):
-        self.txt_number.value = int(self.txt_number.value) + 1
+        if int(self.txt_number.value) + 1 <= self.product.max_count:
+            self.txt_number.value = int(self.txt_number.value) + 1
         self.page.update()
 
     def ok_click(self, e):
@@ -481,7 +492,7 @@ class Shop_box():
         else:
             self.list_korzina_product = Container(content=Column(
                 height=self.page.window_height * 0.5055,
-                scroll='auto',
+                scroll='ALWAYS',
                 controls=[
                 ]
             )
@@ -567,7 +578,7 @@ class Shop_box():
                                 size=20),
                 actions=[
                     ft.Text(value=''),
-                    ft.TextButton(content=Text("Сейчас добавлю товар!👌", weight=FontWeight.BOLD, size=20),
+                    ft.TextButton(content=Text("Сейчас добавлю товар!", weight=FontWeight.BOLD, size=20),
                                   on_click=self.exit_add_click),
                 ],
                 actions_alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
@@ -627,7 +638,6 @@ class AppFinder:
         self.Is_has_name_surname = 0
         self.Is_has_session = 0
         self.sort_list = 'Названию'
-
         self.finder_app()
 
     def korzina_click(self, e):
@@ -704,7 +714,8 @@ class AppFinder:
         self.page.update()
 
     def plus_click(self, e):
-        self.txt_number.value = int(self.txt_number.value) + 1
+        if (int(self.txt_number.value) + 1) <= self.max_count_product:
+            self.txt_number.value = int(self.txt_number.value) + 1
         self.page.update()
 
     def add_click(self, e):
@@ -756,6 +767,8 @@ class AppFinder:
 
     def element_click(self, e):
         self.txt_number = Text(value='1')
+        self.max_count_product = int((e.control.content.controls[5].content.controls[0].content.message).split(': ')[1])
+        self.max_count_product = 20
         self.dialog = ft.AlertDialog(
             title=ft.Text("Укажите количество товара: "),
             modal=True,
@@ -772,7 +785,7 @@ class AppFinder:
         name = e.control.content.controls[3].controls[2]
         info = e.control.content.controls[3].controls[3]
         price = e.control.content.controls[3].controls[4]
-        self.product = Product(name, info, 0, image, shops, price)
+        self.product = Product(name, info, 0, image, shops, price, self.max_count_product)
         self.page.dialog = self.dialog
         self.dialog.open = True
         self.page.update()
@@ -793,13 +806,13 @@ class AppFinder:
         if self.sort_list == 'Названию':
             return res
         elif self.sort_list == 'Минимальной цене':
-            a = sorted(res.items(), key=lambda x: float(x[1]['price'].replace(' ₽', '')))
+            a = sorted(res.items(), key=lambda x: float(x[1]['price']))
             res_new = {}
             for i, val in a:
                 res_new[i] = val
             return res_new
         elif self.sort_list == 'Максимальной цене':
-            a = sorted(res.items(), key=lambda x: float(x[1]['price'].replace(' ₽', '')), reverse=True)
+            a = sorted(res.items(), key=lambda x: float(x[1]['price']), reverse=True)
             res_new = {}
             for i, val in a:
                 res_new[i] = val
@@ -820,12 +833,13 @@ class AppFinder:
             return res
     def generate_product_list(self, e):
         res = find_products.search_products(e)
-        self.count_product_find.value = f'Найдено {len(res)} {self.right_padej(len(res))}!'
+        if res != None:
+            self.count_product_find.value = f'Найдено {len(res)} {self.right_padej(len(res))}!'
         res = self.sort_res(res)
-        if len(res) > 100:
-            stop_res = res[100]
+        if len(res) > 70:
+            stop_res = res[70]
         for i in res:
-            if len(res) > 100:
+            if len(res) > 70:
                 if res[i]['name'] == stop_res['name']:
                     break
             if res[i]['name_shop'] == 'bristol':
@@ -860,7 +874,7 @@ class AppFinder:
                         Container(height=self.page.window_height * 0.0139),
                         Container(content=Tooltip(message='Наличие товара в магазине', content=Row(controls=
                         [shop_name],
-                            alignment=MainAxisAlignment.CENTER), bgcolor='#2E4374',
+                            alignment=MainAxisAlignment.CENTER), bgcolor='#667FBA',
                                                   text_style=ft.TextStyle(size=15, color=ft.colors.WHITE),
                                                   wait_duration=200, border=border.all(1, 'gray')), width=500),
 
@@ -868,19 +882,19 @@ class AppFinder:
                                   Tooltip(message='Описание товара', content=
                                   Text(value=res[i]['name'],
                                        size=24, color='#1d1e33', max_lines=3, text_align='CENTER'),
-                                          bgcolor='#2E4374', text_style=ft.TextStyle(size=15, color=ft.colors.WHITE),
+                                          bgcolor='#667FBA', text_style=ft.TextStyle(size=15, color=ft.colors.WHITE),
                                           wait_duration=200, border=border.all(1, 'gray')),
                                   width=500),
                         Container(),
                         # Container(content=Tooltip(message='Информация о товаре', content=
                         # Text(value='Италия, 0.75 л., Абруццо, 13%', size=20, color='#53377a', text_align='CENTER'),
-                        #                           bgcolor='#2E4374',
+                        #                           bgcolor='#667FBA',
                         #                           text_style=ft.TextStyle(size=15, color=ft.colors.WHITE),
                         #                           wait_duration=200, border=border.all(1, 'gray')),
                         #           width=500),
-                        Container(content=Tooltip(message='Диапозон цен', content=
-                        Text(value=res[i]['price'], size=24, color='#1d1e33', text_align='CENTER',
-                             weight=FontWeight.BOLD), bgcolor='#2E4374',
+                        Container(content=Tooltip(message='Цена', content=
+                        Text(value=str(res[i]['price'])+' ₽', size=24, color='#1d1e33', text_align='CENTER',
+                             weight=FontWeight.BOLD), bgcolor='#667FBA',
                                                   text_style=ft.TextStyle(size=15, color=ft.colors.WHITE),
                                                   wait_duration=200, border=border.all(1, 'gray')),
                                   width=500),
@@ -889,17 +903,17 @@ class AppFinder:
                     Container(width=15),
                     Container(
                     Column(controls=[
-                    Container(alignment=alignment.top_center, content=Tooltip(message='Количество товара в магазинах',
-                                                                              content=Text('123', size=22,
-                                                                                           color='#0F214B',
+                    Container(alignment=alignment.top_center, content=Tooltip(message='Среднее количество товара в магазинах\nМаксимальное количество: '+str(sum(res[i]['count'])),
+                                                                              content=Text('~'+str(sum(res[i]['count']) // len(res[i]['count'])), size=22,
+                                                                                           color='black',
                                                                                            weight='bold'),
-                                                                              bgcolor='#2E4374',
+                                                                              bgcolor='#667FBA',
                                                                               text_style=ft.TextStyle(size=15,
                                                                                                       color=ft.colors.WHITE),
                                                                               wait_duration=200), padding=5),
                     self.product_add_bool,
                     Tooltip(message='Добавить товар!',content=Container(Icon(icons.PLUS_ONE, color='red', size=42)),
-                                bgcolor='#2E4374', text_style=ft.TextStyle(size=15, color=ft.colors.WHITE),
+                                bgcolor='#667FBA', text_style=ft.TextStyle(size=15, color=ft.colors.WHITE),
                                 wait_duration=200, border=border.all(1, 'gray')),
                         ], alignment=MainAxisAlignment.SPACE_BETWEEN), padding=padding.only(bottom=5)
                     )
@@ -949,7 +963,6 @@ class AppFinder:
                                                          ft.dropdown.Option("Названию"),
                                                          ft.dropdown.Option("Минимальной цене"),
                                                          ft.dropdown.Option("Максимальной цене"),
-                                                         ft.dropdown.Option("По наличию всего"),
                                                          ft.dropdown.Option("Магазин Бристоль"),
                                                          ft.dropdown.Option("Магазин КБ")])])],
                                        alignment=MainAxisAlignment.SPACE_BETWEEN)
@@ -1036,7 +1049,7 @@ class AppMain:
         self.value_page = value_page
         # self.page.horizontal_alignment = 'center'
         # self.page.vertical_alignment = 'center'
-        self.TextHeaderWelcome = Text('Привет, пришли за выгодными покупками?🤨', style="headlineLarge",
+        self.TextHeaderWelcome = Text('Привет, пришли за выгодными покупками?', style="headlineLarge",
                                       text_align='center')
         self.create_appbar()
         self.start_view = Container(
@@ -1099,7 +1112,7 @@ def main(page: Page):
     if size[1] == 1080:
         page.window_height = size[1] - 24
     else:
-        page.window_height = size[1] - 68
+        page.window_height = size[1] - 28
     # page.window_width = size[0]
     page.window_max_height = size[1]
     page.window_max_width = size[0]

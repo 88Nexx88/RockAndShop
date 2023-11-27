@@ -1,140 +1,78 @@
-# import osmnx as ox
-# import networkx as nx
-# from folium import folium
-#
-# # Задаем начальную и конечную точки (координаты)
-# origin = (55.7558, 37.6176)  # Москва
-# destination = (55.8500, 37.6500)  # Пример конечной точки
-#
-# # Получаем граф OSM для автомобильных дорог
-# G_drive = ox.graph_from_point(center_point=origin, dist=5000, network_type='drive')
-#
-# # Получаем граф OSM для дорог, по которым могут двигаться пешеходы
-# G_walk = ox.graph_from_point(center_point=origin, dist=5000, network_type='walk')
-#
-# # Находим ближайшие узлы к начальной и конечной точкам в каждом из графов
-# orig_node_drive = ox.distance.nearest_nodes(G_drive, origin[1], origin[0])
-# dest_node_drive = ox.distance.nearest_nodes(G_drive, destination[1], destination[0])
-#
-# orig_node_walk = ox.distance.nearest_nodes(G_walk, origin[1], origin[0])
-# dest_node_walk = ox.distance.nearest_nodes(G_walk, destination[1], destination[0])
-#
-# # Вычисляем кратчайший путь для автомобиля и пешехода
-# car_route = nx.shortest_path(G_drive, orig_node_drive, dest_node_drive, weight='length')
-# pedestrian_route = nx.shortest_path(G_walk, orig_node_walk, dest_node_walk, weight='length')
-#
-# # Вычисляем расстояние для автомобильного и пешеходного маршрутов
-# car_distance = sum(ox.utils_graph.get_route_edge_attributes(G_drive, car_route, 'length'))
-# pedestrian_distance = sum(ox.utils_graph.get_route_edge_attributes(G_walk, pedestrian_route, 'length'))
-#
-# print(f"car distance - {car_distance} m")
-# print(f"walk distance - {pedestrian_distance} m")
-#
-# # Предполагаемые скорости передвижения (в м/с)
-# car_speed = 13.89  # примерно 50 км/ч
-# pedestrian_speed = 1.39  # примерно 5 км/ч
-#
-# # Рассчитываем время в пути (в секундах)
-# car_time_seconds = car_distance / car_speed
-# pedestrian_time_seconds = pedestrian_distance / pedestrian_speed
-#
-# # Преобразуем время в пути из секунд в минуты
-# car_time_minutes = car_time_seconds / 60
-# pedestrian_time_minutes = pedestrian_time_seconds / 60
-#
-# print(f"Примерное время в пути для автомобиля: {car_time_minutes:.2f} минут")
-# print(f"Примерное время в пути для пешехода: {pedestrian_time_minutes:.2f} минут")
-#
-
-#------------------------------------------------------------------------------------------------------------------------
-
-
-import osmnx as ox
-import networkx as nx
-import folium
-
-# # Задаем начальную и конечную точки (координаты)
-# origin = (55.7558, 37.6176)  # Москва
-# destination = (55.8500, 37.6500)  # Пример конечной точки
-#
-# # Получаем граф OSM для автомобильных дорог
-# G_drive = ox.graph_from_point(center_point=origin, dist=5000, network_type='drive')
-#
-# # Получаем граф OSM для дорог, по которым могут двигаться пешеходы
-# G_walk = ox.graph_from_point(center_point=origin, dist=5000, network_type='walk')
-#
-# # Находим ближайшие узлы к начальной и конечной точкам в каждом из графов
-# orig_node_drive = ox.distance.nearest_nodes(G_drive, origin[1], origin[0])
-# dest_node_drive = ox.distance.nearest_nodes(G_drive, destination[1], destination[0])
-#
-# orig_node_walk = ox.distance.nearest_nodes(G_walk, origin[1], origin[0])
-# dest_node_walk = ox.distance.nearest_nodes(G_walk, destination[1], destination[0])
-#
-# # Вычисляем кратчайший путь для автомобиля и пешехода
-# car_route = nx.shortest_path(G_drive, orig_node_drive, dest_node_drive, weight='length')
-# pedestrian_route = nx.shortest_path(G_walk, orig_node_walk, dest_node_walk, weight='length')
-#
-# # Отображаем маршруты на карте folium
-# car_map = ox.plot_graph_folium(G_drive, route=car_route, popup_attribute='length', folium_map=None, tiles='OpenStreetMap')
-# pedestrian_map = ox.plot_graph_folium(G_walk, route=pedestrian_route, popup_attribute='length', folium_map=None, tiles='OpenStreetMap')
-#
-# # Добавляем маркеры начальной и конечной точек
-# folium.Marker(location=origin, popup='Начальная точка', icon=folium.Icon(color='green')).add_to(car_map)
-# folium.Marker(location=destination, popup='Конечная точка', icon=folium.Icon(color='red')).add_to(car_map)
-#
-# folium.Marker(location=origin, popup='Начальная точка', icon=folium.Icon(color='green')).add_to(pedestrian_map)
-# folium.Marker(location=destination, popup='Конечная точка', icon=folium.Icon(color='red')).add_to(pedestrian_map)
-#
-# # Сохраняем карты в HTML файлы
-# car_map.save('car_route_map.html')
-# pedestrian_map.save('pedestrian_route_map.html')
-#----------------------------------------------------------------------------------------------------------------------------------------------
-
-
+import json
+import os.path
 import osmnx as ox
 import networkx as nx
 import pandas as pd
-import sqlite3
+import yaml
+from tqdm import tqdm
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning)
 
-def calculate_distances_dataframe(df, db_file):
-    # Создаем графы OSM для автомобильных дорог и пешеходных маршрутов
-    G_drive = ox.graph_from_point(center_point=(df.iloc[0, 1], df.iloc[0, 2]), dist=5000, network_type='drive')
-    G_walk = ox.graph_from_point(center_point=(df.iloc[0, 1], df.iloc[0, 2]), dist=5000, network_type='walk')
+G_drive, G_walk = ox.load_graphml('drive.graphml'), ox.load_graphml('walk.graphml')
 
-    # Создаем подключение к базе данных SQLite
-    conn = sqlite3.connect(db_file)
+def write_data(filename: str, current_dict: dict, flag: str):
+    with open(filename, 'w') as write_file:
+        match flag:
+            case "json": json.dump(current_dict, write_file, indent=3, ensure_ascii=False)
 
-    # Создаем пустые таблицы для расстояний
-    car_distances = pd.DataFrame(index=df.index, columns=df.index)
-    pedestrian_distances = pd.DataFrame(index=df.index, columns=df.index)
+            case "yaml": yaml.dump(current_dict, write_file, default_flow_style=False)
 
-    for i in range(len(df)):
-        for j in range(len(df)):
-            # Находим ближайшие узлы в каждом графе
-            orig_node_drive = ox.distance.nearest_nodes(G_drive, df.iloc[i, 2], df.iloc[i, 1])
-            dest_node_drive = ox.distance.nearest_nodes(G_drive, df.iloc[j, 2], df.iloc[j, 1])
-            orig_node_walk = ox.distance.nearest_nodes(G_walk, df.iloc[i, 2], df.iloc[i, 1])
-            dest_node_walk = ox.distance.nearest_nodes(G_walk, df.iloc[j, 2], df.iloc[j, 1])
+def tuple_constructor(loader, node): return tuple(loader.construct_sequence(node))
 
-            # Вычисляем кратчайший путь и расстояние для автомобиля и пешехода
-            car_route = nx.shortest_path(G_drive, orig_node_drive, dest_node_drive, weight='length')
-            pedestrian_route = nx.shortest_path(G_walk, orig_node_walk, dest_node_walk, weight='length')
-            car_distance = sum(ox.utils_graph.get_route_edge_attributes(G_drive, car_route, 'length'))
-            pedestrian_distance = sum(ox.utils_graph.get_route_edge_attributes(G_walk, pedestrian_route, 'length'))
+if os.path.exists("cache_walk.yaml") and os.path.exists("cache_drive.yaml"):
+    print('try')
+    # Зарегистрируем конструктор для тега 'tag:yaml.org,2002:python/tuple'
+    yaml.SafeLoader.add_constructor('tag:yaml.org,2002:python/tuple', tuple_constructor)
 
-            # Записываем расстояния в таблицы
-            car_distances.at[i, j] = car_distance
-            pedestrian_distances.at[i, j] = pedestrian_distance
+    with open('cache_walk.yaml', 'r') as yaml_file: nearest_nodes_cache_walk = yaml.safe_load(yaml_file)
 
-    # Сохраняем таблицы в базу данных SQLite
-    car_distances.to_sql('car_distances', conn, index_label='id', if_exists='replace')
-    pedestrian_distances.to_sql('pedestrian_distances', conn, index_label='id', if_exists='replace')
+    with open('cache_drive.yaml', 'r') as yaml_file: nearest_nodes_cache_drive = yaml.safe_load(yaml_file)
 
-    # Закрываем соединение с базой данных
-    conn.close()
+else:
+    print('except')
+    nearest_nodes_cache_drive, nearest_nodes_cache_walk = dict(), dict()
 
-# Пример использования:
-df = pd.read_csv('coords.csv')
 
-db_file = 'db.db3'
-calculate_distances_dataframe(df, db_file)
+
+def calculate_distance(lat1, lon1, lat2, lon2, flag: str) -> int:
+    global nearest_nodes_cache_drive, nearest_nodes_cache_walk
+    match flag:
+        case "drive":
+            if (lat1, lon1) not in nearest_nodes_cache_drive: nearest_nodes_cache_drive[(lat1, lon1)] = ox.distance.nearest_nodes(G_drive, lon1, lat1)
+
+            if (lat2, lon2) not in nearest_nodes_cache_drive: nearest_nodes_cache_drive[(lat2, lon2)] = ox.distance.nearest_nodes(G_drive, lon2, lat2)
+
+            orig_node, dest_node = nearest_nodes_cache_drive[(lat1, lon1)], nearest_nodes_cache_drive[(lat2, lon2)]
+
+            route = nx.shortest_path(G_drive, orig_node, dest_node, weight='length')
+            print(type(route))
+            distance = sum(ox.utils_graph.get_route_edge_attributes(G_drive, route, 'length'))
+            return round(distance)
+
+        case "walk":
+            if (lat1, lon1) not in nearest_nodes_cache_walk: nearest_nodes_cache_walk[(lat1, lon1)] = ox.distance.nearest_nodes(G_walk, lon1, lat1)
+            if (lat2, lon2) not in nearest_nodes_cache_walk: nearest_nodes_cache_walk[(lat2, lon2)] = ox.distance.nearest_nodes(G_walk, lon2, lat2)
+
+            orig_node, dest_node = nearest_nodes_cache_walk[(lat1, lon1)], nearest_nodes_cache_walk[(lat2, lon2)]
+
+            route = nx.shortest_path(G_walk, orig_node, dest_node, weight='length')
+            distance = sum(ox.utils_graph.get_route_edge_attributes(G_walk, route, 'length'))
+            return round(distance)
+
+
+
+
+with open("address_coords.json", 'r') as read_file:
+    address_dict = json.load(read_file)
+
+drive_dict, walk_dict = pd.DataFrame(columns=pd.DataFrame(address_dict).columns).to_dict(), pd.DataFrame(columns=pd.DataFrame(address_dict).columns).to_dict()
+for i in tqdm(drive_dict, desc="Progress ", ncols=200):
+    drive_dict[i]: dict = {j: calculate_distance(address_dict[i][0], address_dict[i][1], address_dict[j][0], address_dict[j][1], "drive") for j in drive_dict}
+    walk_dict[i]: list = {j: calculate_distance(address_dict[i][0], address_dict[i][1], address_dict[j][0], address_dict[j][1], "walk") for j in walk_dict}
+
+write_data("cache_drive.yaml", nearest_nodes_cache_drive, 'yaml')
+write_data("cache_walk.yaml", nearest_nodes_cache_walk, "yaml")
+write_data("distance_drive.json", drive_dict, "json")
+write_data('distance_walk.json', walk_dict, "json")
+
+

@@ -8,6 +8,11 @@ from tqdm import tqdm
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 
+def dowload_graph(filename: str, flag: str):
+    G = ox.graph_from_place('Россия, Владимирская область', network_type=flag)
+    ox.save_graphml(G, filename)
+
+
 G_drive, G_walk = ox.load_graphml('drive.graphml'), ox.load_graphml('walk.graphml')
 
 def write_data(filename: str, current_dict: dict, flag: str):

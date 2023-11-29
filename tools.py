@@ -53,3 +53,10 @@ class Graph:
 
 
 
+class Path_shop_box():
+
+    def __init__(self, path):
+        self.path = path
+        self.shops = {}
+
+

@@ -1,5 +1,5 @@
 # Project exclude paths
 /ias_venv/
 backend/cache
-#backend/drive.graphml
-#backend/walk.graphml
+backend/drive.graphml
+backend/walk.graphml

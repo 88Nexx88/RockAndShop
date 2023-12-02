@@ -3,3 +3,4 @@
 backend/cache
 backend/drive.graphml
 backend/walk.graphml
+backend/__pycache__/

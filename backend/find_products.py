@@ -38,7 +38,10 @@ def search_products(search_query, database_file='db.db3'):
                     'pic_url': unique_results[i][2],
                     'address': unique_results[i][3].split("|"),
                     'name_shop': unique_results[i][4],
-                    'count': [int(i) for i in unique_results[i][5].split(",")]
+                    'count': [int(i) for i in unique_results[i][5].split(",")],
+                    'sale': [float(i) for i in unique_results[i][6].split(",")],
+                    'min': unique_results[i][7],
+                    'max': unique_results[i][8]
                     } for i in range (len(unique_results))}
     except sqlite3.Error as e:
         print(f"Ошибка при выполнении поиска: {e}")
@@ -46,5 +49,6 @@ def search_products(search_query, database_file='db.db3'):
 
 res = search_products(input("Введите название продукта: "))
 for i in res:
-    print(f"---- {i} ----  \n {res[i]['name']}\n{res[i]['address']}\n{res[i]['pic_url']}\n{res[i]['price']}\n{res[i]['name_shop']}\n{res[i]['count']}")
+    print(f"---- {i} ----  \n {res[i]['name']}\n{res[i]['address']}\n{res[i]['pic_url']}\n{res[i]['price']}\n{res[i]['name_shop']}\n"
+          f"{res[i]['count']}\n{res[i]['sale']}\n{res[i]['min']}\n{res[i]['max']}")
     print(os.path.exists(f'{res[i]["pic_url"]}'))

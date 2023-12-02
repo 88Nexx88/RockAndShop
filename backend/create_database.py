@@ -35,7 +35,9 @@ def create_unique_table(database: str, csv_directory: str, img_directoty: str):
         "address": [],
         "name_shop": [],
         "count": [],
-        "sale": []
+        "sale": [],
+        'min_price': [],
+        'max_price': []
     }
 
     """Конкатенация датафреймов из csv файлов в заданной директории, 
@@ -71,8 +73,14 @@ def create_unique_table(database: str, csv_directory: str, img_directoty: str):
         # Применяем функцию генерации рандомного количество товара в соответствующем магазине в диапазоне от 1 до 28
         # Будет храниться в БД в виде строки с разделителем ","
         dict_of_data['count'].append(','.join(str(random.randint(1, 28)) for _ in range(len(dict_of_data['address'][temp_index].split('|')))))
-        # Рандомное генерирование величины скидки в процентах на товар в соответствующем магазине
-        dict_of_data['sale'].append(','.join(str(random.choice(range(0, 21, 5))) for _ in range(len(dict_of_data['address'][temp_index].split('|')))))
+        # Рандомное генерирование величины скидки в виде скидочной цены на товар в соответствующем магазине
+        dict_of_data['sale'].append(",".join([str(round(dict_of_data['price'][temp_index] - ((random.choice(range(0, 21, 5))/100) * dict_of_data['price'][temp_index]), 2)) for _ in range(len(dict_of_data['address'][temp_index].split('|')))]))
+
+        # Определение минимальной и максимальной цены на текущий товар
+        sale_to_list = [float(i) for i in dict_of_data['sale'][temp_index].split(',')]
+        dict_of_data['min_price'].append(min(sale_to_list))
+        dict_of_data['max_price'].append(max(sale_to_list))
+
         temp_index += 1
 
 
@@ -81,7 +89,8 @@ def create_unique_table(database: str, csv_directory: str, img_directoty: str):
     with sqlite3.connect(database) as conn:
         DataFrame(dict_of_data).to_sql("unique_products", conn, if_exists='replace', index=False,
                         dtype={'name': 'TEXT', 'address': 'TEXT', 'name_shop': 'TEXT', 'price': 'REAL',
-                               'pic_url': 'TEXT', "count": "TEXT", "sale": "TEXT"})
+                               'pic_url': 'TEXT', "count": "TEXT", "sale": "TEXT", "min_price": "REAL",
+                               "max_price": "REAL"})
 
         # Удаление товаров из БД, у которых нет картинки
         conn.cursor().execute('DELETE from unique_products WHERE pic_url LIKE "%error%"')

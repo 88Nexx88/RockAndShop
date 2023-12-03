@@ -21,7 +21,7 @@ def calculate_distance_for_user(start_coords_, flag: str) -> dict:
         data = response.json()
 
         # Извлечение расстояния (в метрах) из ответа
-        dict_of_distances[k] = data["routes"][0]["distance"]
+        dict_of_distances[k] = round(data["routes"][0]["distance"])
         # print(f"Расстояние между точками: {distance_in_meters} метров")
     return dict_of_distances
 

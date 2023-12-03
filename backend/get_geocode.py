@@ -1,8 +1,11 @@
 import json
 
 import requests
-from calculate_distance_old import get_addresses_shops
-def geocode(address):
+
+def get_address_shops() -> list:
+    with open('address_coords_for_calculate.json', 'r') as read_file:
+        return [i for i in json.load(read_file)]
+def geocode(address) -> list:
     # URL для запроса к Nominatim
     nominatim_url = "https://nominatim.openstreetmap.org/search"
 

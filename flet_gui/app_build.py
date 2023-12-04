@@ -10,15 +10,31 @@ import find_products
 from storage import result_find
 
 
-class Calc_reclam():
-    def __init__(self, page, result):
-        self.page = page
-        self.result = result
-        self.calc_reclam()
-        self.page.update()
-        self.calculation()
 
+class Result():
+    def __init__(self, page):
+        self.page = page
+        self.page.theme.scrollbar_theme = ScrollbarTheme(thumb_color='white')
+
+        self.create_appbar()
+        self.result_marshrut()
+
+    def povtor_click(self, e):
+        self.page.controls.clear()
+        AppFinder(self.page, Value_page())
+
+    def quastion_find(self, event):
+        dlg = ft.AlertDialog(title=ft.Text("Нужна помощь?"), content=Column(controls=[
+            Text('В данном окне .....'),
+            Text('Если ошиблись с выбором, или хотите увеличить количество товара в позиции то ....')
+        ], width=400, height=self.page.height * 0.37037))
+        self.page.dialog = dlg
+        dlg.open = True
+        self.page.update()
     def create_appbar(self):
+        self.question = ft.IconButton(on_click=self.quastion_find, icon=ft.icons.QUESTION_MARK)
+        self.button = ft.IconButton(on_click=self.povtor_click, icon=icons.REPEAT)
+
         self.appbar = ft.AppBar(
             leading=ft.Icon(ft.icons.APPS),
             leading_width=40,
@@ -26,12 +42,112 @@ class Calc_reclam():
             center_title=False,
             bgcolor=ft.colors.SURFACE_VARIANT,
             actions=[
+                self.question,
+                self.button
+            ],
+        )
+        self.page.add(self.appbar)
+
+    def generate_marshrut_list(self, result):
+        names = ['Самый выгодный (Ваше предпочтение)', 'Самый быстрый', 'Самый оптимальный']
+        all = Column()
+        for name in names:
+            col = Column(controls=[Text(name, size=25, weight='bold')])
+            r = Row(scroll='ADAPTIVE')
+            for i in range(3):
+                d = ft.Card(
+                    content=ft.Container(
+                        content=ft.Column(
+                            [
+                                ft.ListTile(
+                                    leading=ft.Icon(ft.icons.ROUTE, color='black', size=20),
+                                    title=ft.Text(f"Маршрут {i+1}", color='black', size=18, weight='bold'),
+                                    subtitle=Row(controls=[Row(controls=[Text('Расстояние: ', color='black', size=18),
+                                                                         Text('1200', size=18, weight='bold', color='red')]),
+                                                           Row(controls=[Text('Цена: ', color='black', size=18),
+                                                                         Text('1200', size=18, weight='bold', color='green')])]),
+                                ),
+                                ft.Row(
+                                    [ft.ElevatedButton("Подробнее", color='black', bgcolor='#DFFFD8'), ft.ElevatedButton("Посмотреть маршрут", color='black', bgcolor='#DFFFD8')],
+                                    alignment=ft.MainAxisAlignment.END,
+                                ),
+                            ]
+                        ),
+                        width=360,
+                        padding=10,
+
+                    ),
+                    color='#E8D5C4'
+                )
+                r.controls.append(d)
+            col.controls.append(r)
+            all.controls.append(col)
+        return all
+    def result_marshrut(self):
+        col = self.generate_marshrut_list('123')
+        page_1 = Container(
+            width=1000,
+            height=self.page.height * 0.92,
+            border_radius=35,
+            bgcolor='#2E4374',
+            alignment=alignment.center,
+            padding=padding.only(left=80, top=self.page.height * 0.037, right=80),
+
+            content=Column(controls=[
+                Container(height=self.page.height*0.009),
+                Container(content=Text('Рассчитанные маршруты: ', size=34, weight='bold')),
+                col,
+                Container(height=self.page.height * 0.027),
+                Container(content=Row(controls=[Text('Удачной покупки', size=34, weight='bold'), Icon(icons.FAVORITE, color='pink')], alignment=MainAxisAlignment.CENTER)),
+            ]
+            )
+        )
+
+
+        self.page.add(page_1)
+
+
+class Calc_reclam():
+    def __init__(self, page, value_page, result):
+        self.page = page
+        self.value_page=value_page
+        self.result = result
+        self.calc_reclam()
+        self.page.update()
+        self.calculation()
+
+
+    def exit_click(self, e):
+        self.page.controls.clear()
+        AppFinder(self.page, self.value_page)
+
+    def quastion_find(self, event):
+        dlg = ft.AlertDialog(title=ft.Text("Нужна помощь?"), content=Column(controls=[
+            Text('В данном окне .....'),
+            Text('Если ошиблись с выбором, или хотите увеличить количество товара в позиции то ....')
+        ], width=400, height=self.page.height * 0.37037))
+        self.page.dialog = dlg
+        dlg.open = True
+        self.page.update()
+    def create_appbar(self):
+        self.question = ft.IconButton(on_click=self.quastion_find, icon=ft.icons.QUESTION_MARK)
+        self.button = ft.IconButton(on_click=self.exit_click, icon = icons.EXIT_TO_APP)
+        self.appbar = ft.AppBar(
+            leading=ft.Icon(ft.icons.APPS),
+            leading_width=40,
+            title=ft.Text("Rock & Shop", weight=ft.FontWeight.BOLD),
+            center_title=False,
+            bgcolor=ft.colors.SURFACE_VARIANT,
+            actions=[
+                self.question,
+                self.button
             ],
         )
         self.page.add(self.appbar)
 
     def next_page(self, e):
-        print("!!!")
+        self.page.controls.clear()
+        Result(self.page)
 
     def calculation(self):
         time.sleep(10)
@@ -49,13 +165,11 @@ class Calc_reclam():
         )
         self.page.update()
 
-    def exit_reclama(self):
-        self.progress_bar.content.controls[0].value = 'Рассчёт окончен!'
     def calc_reclam(self):
         self.create_appbar()
         self.progress_bar = Container()
         self.progress_bar.content = Column(controls=[Text(value='', style="headlineSmall"),
-                                                     ft.ProgressBar(width=self.page.window_width * 0.75, height=self.page.height * 0.037, bgcolor="white")],
+                                                     ft.ProgressBar(width=self.page.width * 0.75, height=self.page.height * 0.037, bgcolor="white")],
                                            alignment=alignment.center)
         self.progress_bar.content.controls[0].value = 'Рассчитываем вашу покупку...'
         if self.page.height > 900:
@@ -281,7 +395,7 @@ class Calc_param():
         self.result = result_find.Result(products, prices, counts, shops, adr, effects_mode, auto_mode, user_counts)
         print(products, prices, counts, shops, adr, effects_mode, auto_mode, user_counts)
         self.page.controls.clear()
-        Calc_reclam(self.page, self.result)
+        Calc_reclam(self.page, self.value_page, self.result)
 
     def calc_param(self):
         self.create_appbar()
@@ -739,7 +853,7 @@ class AppFinder:
         # if e.control.value != '':
         self.find_page = 0
         self.list_find_product.bgcolor = '#2E4374'
-        self.list_find_product.height = self.page.height * 0.440
+        self.list_find_product.height = self.page.height * 0.5
         self.list_find_product.content.controls.clear()
         self.list_find_product.content.controls.append(Container(height=1))
         self.generate_product_list(e.control.value)
@@ -1116,7 +1230,7 @@ class AppFinder:
     def dropdown_changed(self, e):
         self.sort_list = e.control.value
         self.list_find_product.bgcolor = '#2E4374'
-        self.list_find_product.height = self.page.height * 0.440
+        self.list_find_product.height = self.page.height * 0.5
         self.list_find_product.content.controls.clear()
         self.list_find_product.content.controls.append(Container(height=1))
         if self.find_label.value != '':
@@ -1127,7 +1241,7 @@ class AppFinder:
     def finder_app(self):
         self.create_appbar()
         self.list_find_product = Container(content=Column(
-            height=self.page.height * 0.440,
+            height=self.page.height * 0.5,
             scroll='ALWAYS',
             controls=[
             ]
@@ -1168,7 +1282,7 @@ class AppFinder:
             border_radius=35,
             bgcolor='#2E4374',
             alignment=alignment.center,
-            padding=padding.only(left=80, top=self.page.height*0.037, right=80),
+            padding=padding.only(left=80, top=self.page.height*0.032, right=80),
 
             content=Column(
                 alignment=MainAxisAlignment.SPACE_BETWEEN,
@@ -1176,7 +1290,7 @@ class AppFinder:
                     Column( controls=[
                     Container(height=self.page.height*0.009),
                     Text('Добрый день, давайте выберем товары необходимые вам: ', size=self.page.height * 0.021, weight='bold'),
-                    Container(height=self.page.height*0.009),
+                    Container(height=self.page.height*0.004),
                     self.find_label,
                     self.block_bottom_finder,
                     self.more_list_find_product,

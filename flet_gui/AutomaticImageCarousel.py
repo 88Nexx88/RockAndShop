@@ -38,9 +38,9 @@ class AutomaticImageCarousel(UserControl):
 		ind = 0
 		indexes = [Icon(icons.CIRCLE_OUTLINED,size=11) for _ in self.images_list]
 		while True:
-		    indexes[ind-1] = Icon(icons.CIRCLE_OUTLINED,size=11)
-		    indexes[ind] = Icon(icons.CIRCLE_ROUNDED,size=15)
-		    self.carousel.content = Column([
+			indexes[ind-1] = Icon(icons.CIRCLE_OUTLINED,size=11)
+			indexes[ind] = Icon(icons.CIRCLE_ROUNDED,size=15)
+			self.carousel.content = Column([
 		        Container(
 		                Image(src=self.images_list[ind][0],fit=ImageFit.FILL, border_radius=border_radius.all(5),),
 		                border=border.all(1, colors.BLACK),
@@ -49,14 +49,15 @@ class AutomaticImageCarousel(UserControl):
 		            ),
 		        Row(indexes,alignment=MainAxisAlignment.CENTER),
 		    ])
-		    # if self.descriptive == True:
-			#     self.carousel.content.controls.insert(1, Text(self.images_list[ind][1]))
-		    ind += 1
-		    if ind == len(self.images_list):
-		        ind = 0
-		    self.update()
-		    self.carousel.update()
-		    time.sleep(self.perseverance_time)
+			try:
+				ind += 1
+				if ind == len(self.images_list):
+					ind = 0
+				self.update()
+				self.carousel.update()
+				time.sleep(self.perseverance_time)
+			except:
+				return
 
 	def build(self):
 		return self.carousel

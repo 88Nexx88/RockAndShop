@@ -1,7 +1,7 @@
 # import pyautogui
 from flet import *
 
-from flet_gui.app_build import AppMain
+from flet_gui.app_build import *
 from storage.value_class import Value_page
 
 
@@ -20,9 +20,9 @@ def main(page: Page):
     # else:
     #     page.window_height = size[1] - 30
     # page.window_width = size[0]
-    # # page.window_height = 1056
-    # # page.window_width = 1920
-    # page.window_maximized = True
+    page.window_height = 1080
+    page.window_width = 1920
+    page.window_maximized = True
     # page.window_resizable = False
     value_korzina = Value_page()
     AppMain(page, value_korzina)
@@ -30,5 +30,5 @@ def main(page: Page):
     page.update()
 
 
-app(target=main, view=WEB_BROWSER, port=8080, assets_dir="assets", upload_dir="assets/user")
-# app(target=main, assets_dir="assets", upload_dir="assets/user")
+# app(target=main, view=WEB_BROWSER, port=8080, assets_dir="assets", upload_dir="assets/user")
+app(target=main, assets_dir="assets", upload_dir="assets/user")

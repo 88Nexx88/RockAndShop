@@ -64,11 +64,11 @@ class Value_page():
             new_list = []
             nazv = []
             for i in self.list_korzina:
-                nazv.append(float(i.price.content.content.value.replace(' ₽', '')))
+                nazv.append(float(i.price.content.content.value.replace(' ₽', '').split(' - ')[0]))
             nazv.sort()
             for i in nazv:
                 for j in self.list_korzina:
-                    if float(j.price.content.content.value.replace(' ₽', '')) == i:
+                    if float(j.price.content.content.value.replace(' ₽', '').split(' - ')[0]) == i:
                         new_list.append(j)
                         self.list_korzina.remove(j)
                         break
@@ -77,11 +77,11 @@ class Value_page():
             new_list = []
             nazv = []
             for i in self.list_korzina:
-                nazv.append(float(i.price.content.content.value.replace(' ₽', '')))
+                nazv.append(float(i.price.content.content.value.replace(' ₽', '').split(' - ')[1]))
             nazv.sort(reverse=True)
             for i in nazv:
                 for j in self.list_korzina:
-                    if float(j.price.content.content.value.replace(' ₽', '')) == i:
+                    if float(j.price.content.content.value.replace(' ₽', '').split(' - ')[1]) == i:
                         new_list.append(j)
                         self.list_korzina.remove(j)
                         break

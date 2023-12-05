@@ -6,7 +6,7 @@ from ymaps import *
 
 from flet_gui.AutomaticImageCarousel import AutomaticImageCarousel
 from storage.value_class import *
-import find_products
+from backend import find_products
 from storage import result_find
 
 
@@ -385,10 +385,10 @@ class Calc_param():
             auto_mode = self.page.controls[1].content.controls[0].controls[3].controls[1].value
 
         for i in self.value_page.list_korzina:
-            res = find_products.search_products(i.name.content.content.value)
+            res = find_products.search_fts_table(i.name.content.content.value)
             user_counts.append(i.count)
             products.append(res[0]['name'])
-            prices.append(res[0]['price'])
+            prices.append(res[0]['sale'])
             counts.append(res[0]['count'])
             shops.append(res[0]['address'])
 
@@ -789,6 +789,7 @@ class Shop_box():
 class AppFinder:
 
     def __init__(self, page, value_page):
+        self.size_page = 20
         self.page = page
         self.page.on_resize = None
         # self.page.on_resize = self.change_window_2
@@ -856,6 +857,10 @@ class AppFinder:
         self.list_find_product.height = self.page.height * 0.5
         self.list_find_product.content.controls.clear()
         self.list_find_product.content.controls.append(Container(height=1))
+        self.res = None
+        self.current_page = 1
+        self.more_list_find_product.content.controls.clear()
+
         self.generate_product_list(e.control.value)
 
         self.page.update()
@@ -985,13 +990,13 @@ class AppFinder:
         if self.sort_list == 'Названию':
             return res
         elif self.sort_list == 'Минимальной цене':
-            a = sorted(res.items(), key=lambda x: float(x[1]['price']))
+            a = sorted(res.items(), key=lambda x: float(x[1]['min']))
             res_new = {}
             for i, val in a:
                 res_new[i] = val
             return res_new
         elif self.sort_list == 'Максимальной цене':
-            a = sorted(res.items(), key=lambda x: float(x[1]['price']), reverse=True)
+            a = sorted(res.items(), key=lambda x: float(x[1]['max']), reverse=True)
             res_new = {}
             for i, val in a:
                 res_new[i] = val
@@ -1013,26 +1018,27 @@ class AppFinder:
 
     def click_page(self, e):
         self.more_list_find_product.content.controls.clear()
+        self.current_page = int(e.control.content.value)
         self.list_find_product.content.controls.clear()
         self.list_find_product.content.controls.append(Container(height=1))
         self.find_page = e.control.content.value
         if int(e.control.content.value) == self.current_pages_find:
 
-                keys = list(self.res.keys())[int(e.control.content.value)*50 - 50:]
+                keys = list(self.res.keys())[int(e.control.content.value)*self.size_page - self.size_page:]
                 self.more_list_find_product.content.controls.append(
                     TextButton(content=Text(str(int(e.control.content.value) - 1), size=25), on_click=self.click_page))
                 self.more_list_find_product.content.controls.append(
                     Text('Страница товаров ' + e.control.content.value, size=25))
                 self.more_list_find_product.content.controls.append(TextButton(content=Text('', size=25)))
         elif int(e.control.content.value) == 1:
-            keys = list(self.res.keys())[:50]
+            keys = list(self.res.keys())[:self.size_page]
             self.more_list_find_product.content.controls.append(TextButton(content=Text('', size=25)))
             self.more_list_find_product.content.controls.append(
                 Text('Страница товаров ' + e.control.content.value, size=25))
             self.more_list_find_product.content.controls.append(
                 TextButton(content=Text(str(int(e.control.content.value) + 1), size=25), on_click=self.click_page))
         else:
-                keys = list(self.res.keys())[int(e.control.content.value) * 50  - 50:(int(e.control.content.value)+1) * 50  - 50]
+                keys = list(self.res.keys())[int(e.control.content.value) * self.size_page  - self.size_page:(int(e.control.content.value)+1) * self.size_page  - self.size_page]
                 self.more_list_find_product.content.controls.append(TextButton(content=Text(str(int(e.control.content.value) - 1), size=25), on_click=self.click_page))
                 self.more_list_find_product.content.controls.append(Text('Страница товаров ' + e.control.content.value, size=25))
                 self.more_list_find_product.content.controls.append(TextButton(content=Text(str(int(e.control.content.value) + 1), size=25), on_click=self.click_page))
@@ -1042,36 +1048,42 @@ class AppFinder:
             #     if res[i]['name'] == stop_res['name']:
             #         break
             if self.res[i]['name_shop'] == 'bristol':
-                shop_name = Row(controls=[Image(src='assets/resources/icons_shops/bristol.jpg', width=25, height=25),
+                shop_name = Row(controls=[Image(src='resources/icons_shops/bristol.jpg', width=25, height=25),
                                           Text('Бристоль', color='#1d1e33', size=20)])
             elif self.res[i]['name_shop'] == 'КБ':
-                shop_name = Row(controls=[Image(src='assets/resources/icons_shops/kb.png', width=25, height=25),
-                              Text('Красное и белое', color='#1d1e33', size=20)])
+                shop_name = Row(controls=[Image(src='resources/icons_shops/kb.png', width=25, height=25),
+                                          Text('Красное и белое', color='#1d1e33', size=20)])
             else:
                 shop_name = [
-                    Row(controls=[Image(src='assets/resources/icons_shops/bristol.jpg', width=25, height=25),
+                    Row(controls=[Image(src='resources/icons_shops/bristol.jpg', width=25, height=25),
                                   Text('Пятёрочка', color='#1d1e33', size=20)]),
-                    Row(controls=[Image(src='assets/resources/icons_shops/kb.png', width=25, height=25),
+                    Row(controls=[Image(src='resources/icons_shops/kb.png', width=25, height=25),
                                   Text('Красное и белое', color='#1d1e33', size=20)])]
             self.product_add_bool = Container()
             for product in self.value_page.list_korzina:
                 if product.name.content.content.value == self.res[i]['name']:
                     self.product_add_bool = Tooltip(message='Товар уже добавлен!',
-                            content=Container(Icon(icons.CHECK_BOX, color='green', size=42)),
-                            bgcolor='#2E4374', text_style=ft.TextStyle(size=15, color=ft.colors.WHITE),
-                            wait_duration=200, border=border.all(1, 'gray'))
+                                                    content=Container(Icon(icons.CHECK_BOX, color='green', size=42)),
+                                                    bgcolor='#2E4374',
+                                                    text_style=ft.TextStyle(size=15, color=ft.colors.WHITE),
+                                                    wait_duration=200, border=border.all(1, 'gray'))
                     break
+            if self.res[i]['min'] != 0 and self.res[i]['max'] != 0:
+                diap_price = str(self.res[i]['min']) + ' - ' + str(self.res[i]['max'])
+            else:
+                diap_price = self.res[i]['price']
             r = Container(
                 content=Row(controls=[
-                    Container(Image(src='assets/'+self.res[i]['pic_url'], width=210, height=200),
+                    Container(Image(src=self.res[i]['pic_url'], width=210, height=200),
                               border_radius=ft.border_radius.all(10), width=200, height=190, bgcolor=colors.WHITE,
                               padding=padding.all(5)),
                     Container(width=1),
                     Column(controls=[
                         Container(height=self.page.height * 0.0139),
                         Container(content=Tooltip(message='Наличие товара в магазине', content=Row(controls=
-                        [shop_name],
-                            alignment=MainAxisAlignment.CENTER), bgcolor='#667FBA',
+                                                                                                   [shop_name],
+                                                                                                   alignment=MainAxisAlignment.CENTER),
+                                                  bgcolor='#667FBA',
                                                   text_style=ft.TextStyle(size=15, color=ft.colors.WHITE),
                                                   wait_duration=200, border=border.all(1, 'gray')), width=500),
 
@@ -1090,7 +1102,7 @@ class AppFinder:
                         #                           wait_duration=200, border=border.all(1, 'gray')),
                         #           width=500),
                         Container(content=Tooltip(message='Цена', content=
-                        Text(value=str(self.res[i]['price'])+' ₽', size=24, color='#1d1e33', text_align='CENTER',
+                        Text(value=diap_price + ' ₽', size=24, color='#1d1e33', text_align='CENTER',
                              weight=FontWeight.BOLD), bgcolor='#667FBA',
                                                   text_style=ft.TextStyle(size=15, color=ft.colors.WHITE),
                                                   wait_duration=200, border=border.all(1, 'gray')),
@@ -1099,19 +1111,22 @@ class AppFinder:
                     ], alignment=MainAxisAlignment.SPACE_BETWEEN),
                     Container(width=15),
                     Container(
-                    Column(controls=[
-                    Container(alignment=alignment.top_center, content=Tooltip(message='Среднее количество товара в магазинах\nМаксимальное количество: '+str(sum(self.res[i]['count'])),
-                                                                              content=Text('~'+str(sum(self.res[i]['count']) // len(self.res[i]['count'])), size=22,
-                                                                                           color='black',
-                                                                                           weight='bold'),
-                                                                              bgcolor='#667FBA',
-                                                                              text_style=ft.TextStyle(size=15,
-                                                                                                      color=ft.colors.WHITE),
-                                                                              wait_duration=200), padding=5),
-                    self.product_add_bool,
-                    Tooltip(message='Добавить товар!',content=Container(Icon(icons.PLUS_ONE, color='red', size=42)),
-                                bgcolor='#667FBA', text_style=ft.TextStyle(size=15, color=ft.colors.WHITE),
-                                wait_duration=200, border=border.all(1, 'gray')),
+                        Column(controls=[
+                            Container(alignment=alignment.top_center, content=Tooltip(
+                                message='Среднее количество товара в магазинах\nМаксимальное количество: ' + str(
+                                    sum(self.res[i]['count'])),
+                                content=Text('~' + str(sum(self.res[i]['count']) // len(self.res[i]['count'])), size=22,
+                                             color='black',
+                                             weight='bold'),
+                                bgcolor='#667FBA',
+                                text_style=ft.TextStyle(size=15,
+                                                        color=ft.colors.WHITE),
+                                wait_duration=200), padding=5),
+                            self.product_add_bool,
+                            Tooltip(message='Добавить товар!',
+                                    content=Container(Icon(icons.PLUS_ONE, color='red', size=42)),
+                                    bgcolor='#667FBA', text_style=ft.TextStyle(size=15, color=ft.colors.WHITE),
+                                    wait_duration=200, border=border.all(1, 'gray')),
                         ], alignment=MainAxisAlignment.SPACE_BETWEEN), padding=padding.only(bottom=5)
                     )
 
@@ -1119,28 +1134,35 @@ class AppFinder:
                 # on_click=self.element_click, bgcolor='#667FBA', height=220, border_radius=10)
                 on_click=self.element_click, bgcolor=colors.WHITE, height=220, border_radius=10)
             self.list_find_product.content.controls.append(r)
+        self.keys = keys
         self.page.update()
 
 
     def generate_product_list(self, e):
-        self.res = find_products.search_products(e)
-        if self.res != None:
-            self.count_product_find.value = f'Найдено {len(self.res)} {self.right_padej(len(self.res))}!'
-        if len(self.res) % 50 == 0:
-                self.current_pages_find = int((len(self.res) / 50))
+        if self.res == None:
+            self.res = find_products.search_fts_table(e)
+            self.count_product_find.value = f'Найдено: {len(self.res)} {self.right_padej(len(self.res))}'
+        if len(self.res) % self.size_page == 0:
+            self.current_pages_find = int((len(self.res) / self.size_page))
         else:
-                self.current_pages_find = int((len(self.res) / 50))+1
+            self.current_pages_find = int((len(self.res) / self.size_page)) + 1
 
         self.res = self.sort_res(self.res)
-        self.more_list_find_product.content.controls.clear()
-        if len(self.res) > 50:
-            self.more_list_find_product.bgcolor = '#7366bd'
-            self.more_list_find_product.border_radius = 10
-            self.more_list_find_product.content.controls.append(TextButton(content=Text('', size=25)))
-            self.more_list_find_product.content.controls.append(Text('Страница товаров 1', size=25))
-            self.more_list_find_product.content.controls.append(TextButton(content=Text('2', size=25), on_click=self.click_page))
+        if (len(self.more_list_find_product.content.controls) == 0):
+            if len(self.res) > self.size_page:
+                self.more_list_find_product.bgcolor = '#7366bd'
+                self.more_list_find_product.border_radius = 10
+                self.more_list_find_product.content.controls.append(TextButton(content=Text('', size=25)))
+                self.more_list_find_product.content.controls.append(Text('Страница товаров 1', size=25))
+                self.more_list_find_product.content.controls.append(TextButton(content=Text('2', size=25), on_click=self.click_page))
 
-        keys = list(self.res.keys())[:50]
+            keys = list(self.res.keys())[:self.size_page]
+        else:
+            if self.current_page == 1:
+                keys = list(self.res.keys())[:self.size_page]
+            else:
+                keys = self.keys
+
         # if len(res) > 70:
         #     stop_res = res[70]
         for i in keys:
@@ -1168,6 +1190,10 @@ class AppFinder:
                             bgcolor='#2E4374', text_style=ft.TextStyle(size=15, color=ft.colors.WHITE),
                             wait_duration=200, border=border.all(1, 'gray'))
                     break
+            if self.res[i]['min'] != 0 and self.res[i]['max'] != 0:
+                diap_price = str(self.res[i]['min']) + ' - '+ str(self.res[i]['max'])
+            else:
+                diap_price = self.res[i]['price']
             r = Container(
                 content=Row(controls=[
                     Container(Image(src=self.res[i]['pic_url'], width=210, height=200),
@@ -1197,7 +1223,7 @@ class AppFinder:
                         #                           wait_duration=200, border=border.all(1, 'gray')),
                         #           width=500),
                         Container(content=Tooltip(message='Цена', content=
-                        Text(value=str(self.res[i]['price'])+' ₽', size=24, color='#1d1e33', text_align='CENTER',
+                        Text(value=diap_price+' ₽', size=24, color='#1d1e33', text_align='CENTER',
                              weight=FontWeight.BOLD), bgcolor='#667FBA',
                                                   text_style=ft.TextStyle(size=15, color=ft.colors.WHITE),
                                                   wait_duration=200, border=border.all(1, 'gray')),
@@ -1231,6 +1257,10 @@ class AppFinder:
         self.sort_list = e.control.value
         self.list_find_product.bgcolor = '#2E4374'
         self.list_find_product.height = self.page.height * 0.5
+
+        self.current_page = 1
+        self.more_list_find_product.content.controls.clear()
+
         self.list_find_product.content.controls.clear()
         self.list_find_product.content.controls.append(Container(height=1))
         if self.find_label.value != '':

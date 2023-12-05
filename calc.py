@@ -1,12 +1,17 @@
+import random
+
 from tools import *
 
-
+import numpy as np
+import storage.result_find as result_
+from scipy.optimize import linprog
 from tools import *
 from  collections import deque
 
 
 class Calc():
-    def __init__(self):
+    def __init__(self, shop_box):
+        self.shop_box = shop_box
         self.min_answer_dist = {'dist' : 1000000, 'depth' : -1, 'path' : []}
         self.min_answer_price = {'price': 1000000, 'path': []}
         self.recom_answer_price = []
@@ -24,7 +29,7 @@ class Calc():
         if current_depth == depth:
             r = self.calculate_distance(graph, path)
             self.stop+=1
-            if self.calculete_shop_box(graph, path, shop_box):
+            if self.calculete_shop_box(graph, path, self.shop_box):
                 if r < self.min_answer_dist['dist']:
                     #доделать рекомендованные ещё!
                     self.min_answer_dist['dist'] = r
@@ -85,50 +90,37 @@ class Calc():
 
         print(f'Answer dist = ', self.min_answer_dist)
 
+    def create_answer_min_price(self, result):
+        shops = result.shops
+        davat_shop = result.counts
+        prices = result.prices
+        self.calc_min_price(shops, davat_shop, prices)
+    def calc_min_price(self, shops, b_ub, prices):
+        print(b_ub, prices, self.shop_box)
+        b_eq = list(self.shop_box.values())
+        m, n = prices.shape
+        c = list(np.reshape(prices, n * m))  # Преобразование матрицы A в список c.
+        A_ub = np.zeros([n * m, m * n])
+        for i in np.arange(0, n * m, 1):  # Заполнение матрицы условий –неравенств.
+            for j in np.arange(0, n * m, 1):
+                if i == j:
+                    A_ub[i, j] = 1
 
-    def calc_min_price(self, graph, shop_box):
-        min_price = 0
-        min_path = ['client']
-        product_dict = {}
-        for i in shop_box:
-            shops = {}
-            for ver in graph.vertexs:
-                if i in graph.vertexs[ver].all_products:
-                    shops[ver] = graph.vertexs[ver].all_products[i]
-            product_dict[i] = shops
-        # print('start')
-        # print(product_dict)
-        # print('sort')
-        sorted_data = {}
-        for product, shops in product_dict.items():
-            sorted_shops = sorted(shops.items(), key=lambda x: (x[1][0], -x[1][1]))
-            sorted_data[product] = [{shop[0]: shop[1]} for shop in sorted_shops]
+        A_eq = np.zeros([m, m * n])
+        for i in np.arange(0, m, 1):  # Заполнение матрицы условий –равенств.
+            k = 0
+            for j in np.arange(0, n * m, 1):
+                if j == k * n + i:
+                    A_eq[i, j] = 1
+                    k = k + 1
+        print(c, A_ub, b_ub, A_eq, b_eq)
+        print(len(c), len(A_ub), len(b_ub), len(A_eq), len(b_eq))
+        answer = linprog(c, A_ub, b_ub, A_eq, b_eq)
+        print('Цена: ', answer['fun'])
+        for i in range(1, len(answer['x']) + 1):
+            print('x' + str(i) + ' ->', answer['x'][i - 1])
+        # for product in list(self.shop_box.keys()):
 
-        # print(sorted_data)
-        # print('shop_box')
-        # print(shop_box)
-        for i in shop_box:
-            index = 0
-            current_count = shop_box[i]
-            while current_count != 0:
-                cur = list(sorted_data[i][index].values())[0]
-                if current_count - cur[1] <= 0:
-                    min_path.append(list(sorted_data[i][index].keys())[0])
-                    min_price += cur[0]*current_count
-                    current_count -= current_count
-                else:
-                    min_path.append(list(sorted_data[i][index].keys())[0])
-                    min_price += cur[0]*cur[1]
-                    current_count -= cur[1]
-                    index+=1
-            # min_path.append('|')
-        amswer_path = []
-        for i in min_path:
-            if i not in amswer_path:
-                amswer_path.append(i)
-        self.min_answer_price['price'] = min_price
-        self.min_answer_price['path'] = amswer_path
-        print(f'Answer price = {self.min_answer_price}')
 
 
     def bfs_mod(self, graph, start):
@@ -147,6 +139,9 @@ class Calc():
 
 
 
+
+# calc.create_answer_min_price(shop_box, )
+# calc.create_answer_min_price(shop_box, result)
 
 graph = Graph()
 graph.add_vertex('1', ['pizza', 'beer', 'vodka'], [500, 100, 350], [11, 34, 12])
@@ -173,15 +168,14 @@ graph.add_edge('2', '4', 350)
 # graph.show_edges()
 
 
-calc = Calc()
+shop_box = {'pizza' : 34, 'beer' : 53, 'beer2': 12}
+calc = Calc(shop_box)
 shop_box = {'pizza' : 34, 'beer' : 53, 'beer2': 12}
 print(shop_box)
-calc.calc_min_price(graph, shop_box)
 calc.calc_min_path(graph, shop_box)
-
-shop_box = {'pizza' : 1, 'beer' : 2, 'beer2': 4}
-print(shop_box)
-calc.calc_min_price(graph, shop_box)
-calc.calc_min_path(graph, shop_box)
+#
+# shop_box = {'pizza' : 1, 'beer' : 2, 'beer2': 4}
+# print(shop_box)
+# calc.calc_min_path(graph, shop_box)
 
 

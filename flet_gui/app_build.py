@@ -4,6 +4,7 @@ import flet as ft
 from flet import *
 from ymaps import *
 
+import calc
 from flet_gui.AutomaticImageCarousel import AutomaticImageCarousel
 from storage.value_class import *
 from backend import find_products
@@ -150,7 +151,30 @@ class Calc_reclam():
         Result(self.page)
 
     def calculation(self):
-        time.sleep(10)
+        products = []
+        counts = []
+        shops = []
+        prices = []
+        user_counts = []
+
+        time.sleep(3)
+        for i in self.value_page.list_korzina:
+            res = find_products.search_fts_table(i.name.content.content.value)
+            user_counts.append(i.count)
+            products.append(res[0]['name'])
+            prices.append(res[0]['sale'])
+            counts.append(res[0]['count'])
+            shops.append(res[0]['address'])
+
+        self.result['products'] = products
+        self.result['prices'] = prices
+        self.result['counts'] = counts
+        self.result['shops'] = shops
+        self.result['user_counts'] = user_counts
+        print(self.result)
+
+        calc.create_answer_min_price(self.result)
+        time.sleep(3)
         self.progress_bar.content.controls[0].value = 'Рассчёт окончен!'
         self.page.update()
         time.sleep(2)
@@ -173,7 +197,7 @@ class Calc_reclam():
                                            alignment=alignment.center)
         self.progress_bar.content.controls[0].value = 'Рассчитываем вашу покупку...'
         if self.page.height > 900:
-            images = [['resources/reclam/1080/vlsu.png', 'https://prkom.vlsu.ru/'],['../resources/reclam/1080/izi1.png', 'http://izi.vlsu.ru/index.php?id=2'], ['../resources/reclam/1080/izi2.png', 'https://vk.com/izivlsu']]
+            images = [['resources/reclam/1080/vlsu.png', 'https://prkom.vlsu.ru/'],['resources/reclam/1080/izi1.png', 'http://izi.vlsu.ru/index.php?id=2'], ['resources/reclam/1080/izi2.png', 'https://vk.com/izivlsu']]
         else:
             images = [['resources/reclam/768/vlsu.png', 'https://prkom.vlsu.ru/'],
                       ['resources/reclam/768/izi1.png', 'http://izi.vlsu.ru/index.php?id=2'],
@@ -354,11 +378,6 @@ class Calc_param():
             file.close()
 
     def next_page(self, e):
-        products = []
-        counts = []
-        shops = []
-        prices = []
-        user_counts = []
         adr = self.address
         if adr == '':
             dlg_modal = ft.AlertDialog(
@@ -384,16 +403,8 @@ class Calc_param():
         if auto_mode == '':
             auto_mode = self.page.controls[1].content.controls[0].controls[3].controls[1].value
 
-        for i in self.value_page.list_korzina:
-            res = find_products.search_fts_table(i.name.content.content.value)
-            user_counts.append(i.count)
-            products.append(res[0]['name'])
-            prices.append(res[0]['sale'])
-            counts.append(res[0]['count'])
-            shops.append(res[0]['address'])
 
-        self.result = result_find.Result(products, prices, counts, shops, adr, effects_mode, auto_mode, user_counts)
-        print(products, prices, counts, shops, adr, effects_mode, auto_mode, user_counts)
+        self.result = {'adress':adr,'mode': effects_mode, 'mode1':auto_mode}
         self.page.controls.clear()
         Calc_reclam(self.page, self.value_page, self.result)
 

@@ -156,6 +156,7 @@ class Calc_reclam():
         shops = []
         prices = []
         user_counts = []
+        price_one = []
 
         time.sleep(3)
         for i in self.value_page.list_korzina:
@@ -165,16 +166,17 @@ class Calc_reclam():
             prices.append(res[0]['sale'])
             counts.append(res[0]['count'])
             shops.append(res[0]['address'])
+            price_one.append(res[0]['price'])
 
         self.result['products'] = products
         self.result['prices'] = prices
         self.result['counts'] = counts
         self.result['shops'] = shops
         self.result['user_counts'] = user_counts
+        self.result['price_one'] = price_one
         print(self.result)
-
-        calc.create_answer_min_price(self.result)
-        time.sleep(3)
+        calc.calc_(self.result)
+        time.sleep(1)
         self.progress_bar.content.controls[0].value = 'Рассчёт окончен!'
         self.page.update()
         time.sleep(2)
@@ -1289,7 +1291,7 @@ class AppFinder:
 
         )
         )
-        self.more_list_find_product = Container(content=Row(controls=[Text('', size=25)], alignment=MainAxisAlignment.SPACE_BETWEEN))
+        self.more_list_find_product = Container(content=Row(controls=[Text('', size=self.page.height * 0.0225)], alignment=MainAxisAlignment.SPACE_BETWEEN))
         self.count_product_find = Text(value='', size=22, weight=ft.FontWeight.BOLD)
         self.block_bottom_finder = Row(controls=[self.count_product_find,
                                                  # Row(controls=[Text('Сортировать по: ', size=22, weight=ft.FontWeight.BOLD), Dropdown(value='Названию',width=400, on_change=self.dropdown_changed, text_size= 22,

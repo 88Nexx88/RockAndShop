@@ -1,6 +1,8 @@
 import random
 import time
 
+from backend.calculate_distance import calculate_distance_for_user
+from backend.get_geocode import geocode
 from tools import *
 
 import numpy as np
@@ -9,80 +11,509 @@ from scipy.optimize import linprog
 from tools import *
 from collections import deque
 
-'''
-    # def create_answer(self):
-    #     pass
-    # def get_combinations_with_distance(self, graph, vertex, depth, current_depth=0, path=None, result=None):
+
+class Calc_distance():
+    def create_answer(self, path):
+        answer = {}
+        current_shop_box = dict(self.shop_box.items())
+        for i in range(1, len(path)):
+            all_product = {}
+            for product in self.shop_box:
+                if product in self.graph.vertexs[path[i]].all_products:
+                    if current_shop_box[product] == 0:
+                        pass
+                    elif self.graph.vertexs[path[i]].all_products[product][1] >= current_shop_box[product]:
+                        all_product[product] = current_shop_box[product]
+                        current_shop_box[product] = 0
+                    else:
+                        all_product[product] = self.graph.vertexs[path[i]].all_products[product][1]
+                        current_shop_box[product] = current_shop_box[product] - \
+                                                    self.graph.vertexs[path[i]].all_products[product][1]
+            answer[self.graph.vertexs[path[i]].name] = all_product
+
+        return answer
+
+    def calculate_price(self, path):
+        price = 0
+        current_shop_box = dict(self.shop_box.items())
+        for i in range(1, len(path)):
+            for product in self.shop_box:
+                if product in self.graph.vertexs[path[i]].all_products:
+                    if current_shop_box[product] == 0:
+                        pass
+                    elif self.graph.vertexs[path[i]].all_products[product][1] >= current_shop_box[product]:
+                        price += current_shop_box[product] * self.graph.vertexs[path[i]].all_products[product][0]
+                        current_shop_box[product] = 0
+                    else:
+                        price += self.graph.vertexs[path[i]].all_products[product][1] * self.graph.vertexs[path[i]].all_products[product][0]
+                        current_shop_box[product] = current_shop_box[product] - \
+                                                    self.graph.vertexs[path[i]].all_products[product][1]
+
+        return price
+
+
+    # def get_combinations_with_all(self, vertex, depth, current_depth=0, path=None, result=None):
     #     if path is None:
     #         path = [vertex]
-    #     if result is None:
-    #         result = []
     #     if current_depth == depth:
-    #         r = self.calculate_distance(graph, path)
-    #         self.stop+=1
-    #         if self.calculete_shop_box(graph, path, self.shop_box):
-    #             if r < self.min_answer_dist['dist']:
-    #                 #доделать рекомендованные ещё!
-    #                 self.min_answer_dist['dist'] = r
-    #                 self.min_answer_dist['path'] = path[:]
-    #                 self.min_answer_dist['depth'] = current_depth
+    #         if self.calculete_shop_box(path):
+    #             s = self.calculate_price(path)
+    #             r = self.calculate_distance(path)
+    #             self.stop += 1
+    #             if r < self.max_path['dist']:
+    #                 if s < self.max_price['price']:
+    #                 # доделать рекомендованные ещё!
+    #                     self.opt_answer.append({'dist':r, 'price':s, 'path':path[:], 'shops':self.create_answer(path), 'depth':current_depth})
     #         # для тестов
-    #         # result.append((path[:], self.calculate_distance(graph, path), self.calculete_shop_box(graph, path, shop_box)))
-    #         return
-    # 
-    #     for neighbor, distance in graph.vertexs[vertex].neighbors.items():
+    #         # result.append((path[:], self.calculate_distance(path), self.calculete_shop_box(path)))
+    #         return 0
+    #
+    #     for neighbor, distance in self.graph.vertexs[vertex].neighbors.items():
     #         if neighbor in path:
     #             continue
-    #         if graph.vertexs[vertex].neighbors[neighbor]+self.calculate_distance(graph, path) > self.min_answer_dist['dist']:
+    #         if self.graph.vertexs[vertex].neighbors[neighbor] + self.calculate_distance(path) > (self.min_path['dist'] + self.max_path['dist']) / 2:
     #             continue
-    # 
+    #         if self.calculate_price(path) > self.max_price['price']:
+    #             continue
+    #
+    #
     #         path.append(neighbor)
-    #         self.get_combinations_with_distance(graph, neighbor, depth, current_depth + 1, path, result)
+    #         self.get_combinations_with_all(neighbor, depth, current_depth + 1, path, result)
     #         path.pop()
-    # 
+    #
     #     return result
-    # 
-    # def calculete_shop_box(self, graph, path, shop_box):
-    #     current_shop_box = dict(shop_box.items())
-    #     for i in range(1, len(path)):
-    #         for product in shop_box:
-    #             if product in graph.vertexs[path[i]].all_products:
-    #                 if current_shop_box[product] == 0:
-    #                     pass
-    #                 elif graph.vertexs[path[i]].all_products[product][1] >= current_shop_box[product]:
-    #                     current_shop_box[product] = 0
-    #                 else:
-    #                     current_shop_box[product] = current_shop_box[product] - graph.vertexs[path[i]].all_products[product][1]
-    #     for product in current_shop_box:
-    #         if current_shop_box[product] != 0:
-    #             return False
-    #     return True
-    # def calculate_distance(self, graph, path):
-    #     distance = 0
-    #     for i in range(len(path) - 1):
-    #         distance += graph.vertexs[path[i]].neighbors[path[i+1]]
-    #     return distance
-    # 
-    # 
-    # def calc_min_path(self, graph, shop_box):
+
+
+    def get_combinations_with_distance(self, vertex, depth, current_depth=0, path=None, result=None):
+        if path is None:
+            path = [vertex]
+        if result is None:
+            result = []
+        if current_depth == depth:
+            r = self.calculate_distance(path)
+            self.stop += 1
+            if self.calculete_shop_box(path):
+                if r < self.min_answer_dist['dist']:
+                    # доделать рекомендованные ещё!
+                    if self.min_answer_dist['depth'] != 10000 and self.min_answer_dist['depth'] < current_depth:
+                        # print('!',r, '!', self.min_answer_dist['dist'], self.min_answer_dist['depth'], current_depth)
+                        self.another_answer.append(self.min_answer_dist.copy())
+                    self.min_answer_dist['dist'] = r
+                    self.min_answer_dist['path'] = path[:]
+                    self.min_answer_dist['price'] = self.calculate_price(path)
+                    self.min_answer_dist['shops'] = self.create_answer(path)
+                    self.min_answer_dist['depth'] = current_depth
+            # для тестов
+            # result.append((path[:], self.calculate_distance(path), self.calculete_shop_box(path)))
+            return result
+
+        for neighbor, distance in self.graph.vertexs[vertex].neighbors.items():
+            if neighbor in path:
+                continue
+            if self.graph.vertexs[vertex].neighbors[neighbor] + self.calculate_distance(path) > self.min_answer_dist[
+                'dist']:
+                continue
+            path.append(neighbor)
+            self.get_combinations_with_distance(neighbor, depth, current_depth + 1, path, result)
+            path.pop()
+
+        return result
+
+    def calculete_shop_box(self, path):
+        current_shop_box = dict(self.shop_box.items())
+        for i in range(1, len(path)):
+            for product in self.shop_box:
+                if product in self.graph.vertexs[path[i]].all_products:
+                    if current_shop_box[product] == 0:
+                        pass
+                    elif self.graph.vertexs[path[i]].all_products[product][1] >= current_shop_box[product]:
+                        current_shop_box[product] = 0
+                    else:
+                        current_shop_box[product] = current_shop_box[product] - \
+                                                    self.graph.vertexs[path[i]].all_products[product][1]
+        for product in current_shop_box:
+            if current_shop_box[product] != 0:
+                return False
+        return True
+
+    def calculate_distance(self, path):
+        distance = 0
+        for i in range(len(path) - 1):
+            distance += self.graph.vertexs[path[i]].neighbors[path[i + 1]]
+        return distance
+
+
+    # def calc_all_path(self, graph, shop_box, min_price, min_path):
+    #     self.opt_answer = []
+    #
+    #     self.min_path = min_path.copy()
+    #     self.max_path = min_price.copy()
+    #
+    #     self.min_price = min_price.copy()
+    #     self.max_price = min_path.copy()
+    #
+    #
+    #
     #     self.shop_box = shop_box
+    #     self.graph = graph
+    #     self.stop = 0
     #     start_vertex = 'client'
     #     current_shop_box = shop_box.copy()
-    #     for i in range(1, len(graph.vertexs)):
+    #     for i in range(len(min_path['shops'].keys()), len(min_price['shops'].keys())+1):
     #         depth = i
-    #         self.get_combinations_with_distance(graph, start_vertex, depth)
-    # 
+    #         print(depth)
+    #         self.get_combinations_with_all(start_vertex, depth)
+    #
     #         # для тестов
     #         # print(f'{depth}____________________________')
     #         # print(self.stop)
     #         # print(f'answer ', self.min_answer_dist)
-    #         # combinations_with_distance = get_combinations_with_distance(graph, start_vertex, depth)
+    #         # combinations_with_distance = self.get_combinations_with_distance(start_vertex, depth)
     #         # print(combinations_with_distance)
-    # 
-    #     print(f'Answer dist = ', self.min_answer_dist)
-'''
+    #
+    #     # print(f'Answer dist = ', self.min_answer_dist)
+    #     print(f'opt answer = ', self.opt_answer)
+
+    def calc_min_path(self, graph, shop_box, max_path):
+        self.another_answer = []
+        self.min_answer_dist = {'dist': 100000, 'depth': 10000}
+        self.shop_box = shop_box
+        self.graph = graph
+        self.stop = 0
+        start_vertex = 'client'
+        current_shop_box = shop_box.copy()
+        for i in range(1, len(max_path['shops'].keys())+1):
+            depth = i
+            self.get_combinations_with_distance(start_vertex, depth)
+
+            # для тестов
+            # print(f'{depth}____________________________')
+            # print(self.stop)
+            # print(f'answer ', self.min_answer_dist)
+            # combinations_with_distance = self.get_combinations_with_distance(start_vertex, depth)
+            # print(combinations_with_distance)
+
+        # print(f'Answer dist = ', self.min_answer_dist)
+        print(f'another answer = ', self.another_answer)
+        print(f'answer = ', self.min_answer_dist)
+        return self.min_answer_dist
 
 
+def calc_(result):
+    min_price_answer = create_answer_min_price(result)
+    min_dist_answer = create_answer_distance(result, min_price_answer)
+
+
+def create_answer_min_path(data, current_path):
+    kost = 'Владимир '
+    start = time.time()
+    shop_box = {}
+    for i, val in enumerate(data['products']):
+        shop_box[val] = int(data['user_counts'][i])
+
+    all_path = {}
+    for index, d in enumerate(data['shops']):
+        for ind, val in enumerate(d):
+            if kost not in val:
+                val = kost+val
+            all_path[val] = [10000000 for i in range(len(shop_box.keys()))]
+
+    for index, d in enumerate(data['shops']):
+        for ind, val in enumerate(d):
+            if kost not in val:
+                val = kost+val
+            all_path[val][index] = current_path['client'][val]
+
+
+    all_price = {}
+    for index, d in enumerate(data['shops']):
+        for ind, val in enumerate(d):
+            if kost not in val:
+                val = kost+val
+            all_price[val] = [10000 for i in range(len(shop_box.keys()))]
+
+    for index, d in enumerate(data['shops']):
+        for ind, val in enumerate(d):
+            if kost not in val:
+                val = kost+val
+            all_price[val][index] = data['prices'][index][ind]
+
+    all_counts = {}
+    for index, d in enumerate(data['shops']):
+        for ind, val in enumerate(d):
+            if kost not in val:
+                val = kost+val
+            all_counts[val] = [0 for i in range(len(shop_box.keys()))]
+
+    for index, d in enumerate(data['shops']):
+        for ind, val in enumerate(d):
+            if kost not in val:
+                val = kost+val
+            all_counts[val][index] = data['counts'][index][ind]
+
+    b_ub = []
+    count = 0
+    for product in shop_box:
+        for key in all_counts:
+            b_ub.append(all_counts[key][count])
+        count += 1
+
+    a_val = []
+    count = 0
+    for product in shop_box:
+        a = []
+        for key in all_path:
+            a.append(all_path[key][count])
+        count += 1
+        a_val.append(a)
+
+    A = np.array(a_val)
+    b_eq = list(shop_box.values())
+    m, n = A.shape
+    c = list(np.reshape(A, n * m))  # Преобразование матрицы A в список c.
+    A_ub = np.zeros([n * m, m * n])
+    for i in np.arange(0, n * m, 1):  # Заполнение матрицы условий –неравенств.
+        for j in np.arange(0, n * m, 1):
+            if i == j:
+                A_ub[i, j] = 1
+
+    A_eq = np.zeros([m, m * n])
+    for i in np.arange(0, m, 1):  # Заполнение матрицы условий –равенств.
+        for j in np.arange(i * n, n * (i + 1), 1):
+            A_eq[i, j] = 1
+
+    answer = linprog(c, A_ub, b_ub, A_eq, b_eq)
+    print('Цена Расстоянием: ', answer['fun'])
+    min_price_answer = {'price': answer['fun']}
+    shops = {}
+    for index, shop in enumerate(list(all_counts.keys())):
+        # print(shop)
+        count = 0
+        ans = f'{shop}\n'
+        flag = 0
+        products = {}
+        for product in shop_box.keys():
+            ans += product + ' '+str(answer['x'][index + count]) + '\n'
+            if answer['x'][index + count] != 0:
+                products[product] = answer['x'][index + count]
+                flag += 1
+            count += len(list(all_counts.keys()))
+        if flag != 0:
+            pass
+            # print(ans)
+        if len(products) != 0:
+            shops[shop] = products
+
+    finish = time.time()
+    min_price_answer['shops'] = shops
+    print(min_price_answer)
+    print('Время ', finish-start)
+    return min_price_answer
+
+def create_answer_distance(data, min_price_answer):
+    shop_box = {}
+    for i, val in enumerate(data['products']):
+        shop_box[val] = int(data['user_counts'][i])
+
+    shops = {}
+    for index, d in enumerate(data['shops']):
+        for ind, val in enumerate(d):
+            shops[val] = {}
+            shops[val]['prices'] = []
+            shops[val]['count'] = []
+            shops[val]['product'] = []
+    for index, d in enumerate(data['shops']):
+        for ind, val in enumerate(d):
+            shops[val]['prices'].append(data['prices'][index][ind])
+            shops[val]['count'].append(data['counts'][index][ind])
+            shops[val]['product'].append(data['products'][index])
+
+    # print(shops)
+    s = shops.keys()
+    edges = calc_edge(s, data['adress'], 0 if data['mode1'] == 'Пешком' else 1)
+    #
+    start = time.time()
+    graph = Graph()
+    graph.add_vertex('client', [], [], [])
+    for shop, value in shops.items():
+        if 'Владимир' not in shop:
+            graph.add_vertex('Владимир ' + shop, value['product'], value['prices'], value['count'])
+        else:
+            graph.add_vertex(shop, value['product'], value['prices'], value['count'])
+    for first in edges:
+        for second in edges[first]:
+            graph.add_edge(first, second, edges[first][second])
+
+    max_path_answer = create_answer_min_path(data, edges)
+
+    cl = Calc_distance()
+    list_name = []
+    for shop1 in list(min_price_answer['shops'].keys()):
+        if 'Владимир ' not in shop1:
+            list_name.append('Владимир '+shop1)
+        else:
+            list_name.append(shop1)
+    min_price_answer['dist'] = graph.calc_distance(list_name)
+    min_dist_answer = cl.calc_min_path(graph, shop_box, max_path_answer)
+    finish = time.time()
+    print(f'Vremy ^ {finish-start}')
+
+    # start = time.time()
+    # opt_answer = cl.calc_all_path(graph, shop_box, min_price_answer, min_dist_answer)
+    # finish = time.time()
+    # print(f'Vremy ^ {finish - start}')
+
+    return min_dist_answer
+    # graph.show_all_vertices()
+
+
+
+import json
+
+def calc_edge(shops, address, mode):
+    new_shops = []
+    for shop in shops:
+        if 'Владимир' not in shop:
+            new_shops.append('Владимир ' + shop)
+        else:
+            new_shops.append(shop)
+    shops = new_shops.copy()
+    if mode == 0:
+        with open('backend/distance_walk.json', encoding='utf-8', mode='r') as f:
+            data = json.load(f)
+    else:
+        with open('backend/distance_drive.json', encoding='utf-8', mode='r') as f:
+            data = json.load(f)
+    current_data = {}
+    for shop in shops:
+        shop_s = {}
+        for sh in data[shop]:
+            if sh != shop and sh in shops:
+                shop_s[sh] = data[shop][sh]
+        current_data[shop] = shop_s
+
+    start = time.time()
+    client = calculate_distance_for_user(geocode(address[1]), 'walking' if mode == 0 else 'driving')
+    shop_s = {}
+    for sh in client:
+        if  sh in shops:
+            shop_s[sh] = client[sh]
+    current_data['client'] = shop_s
+    finish = time.time()
+
+    # for shop in current_data:
+    #     print(shop, current_data[shop])
+
+    print(f'Vremy ', finish-start)
+
+    return current_data
+
+
+def create_answer_min_path(data, current_path):
+    kost = 'Владимир '
+    start = time.time()
+    shop_box = {}
+    for i, val in enumerate(data['products']):
+        shop_box[val] = int(data['user_counts'][i])
+
+    all_path = {}
+    for index, d in enumerate(data['shops']):
+        for ind, val in enumerate(d):
+            if kost not in val:
+                val = kost+val
+            all_path[val] = [10000000 for i in range(len(shop_box.keys()))]
+
+    for index, d in enumerate(data['shops']):
+        for ind, val in enumerate(d):
+            if kost not in val:
+                val = kost+val
+            all_path[val][index] = current_path['client'][val]
+
+
+    all_price = {}
+    for index, d in enumerate(data['shops']):
+        for ind, val in enumerate(d):
+            if kost not in val:
+                val = kost+val
+            all_price[val] = [10000 for i in range(len(shop_box.keys()))]
+
+    for index, d in enumerate(data['shops']):
+        for ind, val in enumerate(d):
+            if kost not in val:
+                val = kost+val
+            all_price[val][index] = data['prices'][index][ind]
+
+    all_counts = {}
+    for index, d in enumerate(data['shops']):
+        for ind, val in enumerate(d):
+            if kost not in val:
+                val = kost+val
+            all_counts[val] = [0 for i in range(len(shop_box.keys()))]
+
+    for index, d in enumerate(data['shops']):
+        for ind, val in enumerate(d):
+            if kost not in val:
+                val = kost+val
+            all_counts[val][index] = data['counts'][index][ind]
+
+    b_ub = []
+    count = 0
+    for product in shop_box:
+        for key in all_counts:
+            b_ub.append(all_counts[key][count])
+        count += 1
+
+    a_val = []
+    count = 0
+    for product in shop_box:
+        a = []
+        for key in all_path:
+            a.append(all_path[key][count])
+        count += 1
+        a_val.append(a)
+
+    A = np.array(a_val)
+    b_eq = list(shop_box.values())
+    m, n = A.shape
+    c = list(np.reshape(A, n * m))  # Преобразование матрицы A в список c.
+    A_ub = np.zeros([n * m, m * n])
+    for i in np.arange(0, n * m, 1):  # Заполнение матрицы условий –неравенств.
+        for j in np.arange(0, n * m, 1):
+            if i == j:
+                A_ub[i, j] = 1
+
+    A_eq = np.zeros([m, m * n])
+    for i in np.arange(0, m, 1):  # Заполнение матрицы условий –равенств.
+        for j in np.arange(i * n, n * (i + 1), 1):
+            A_eq[i, j] = 1
+
+    answer = linprog(c, A_ub, b_ub, A_eq, b_eq)
+    print('Цена: ', answer['fun'])
+    min_price_answer = {'price': answer['fun']}
+    shops = {}
+    for index, shop in enumerate(list(all_counts.keys())):
+        # print(shop)
+        count = 0
+        ans = f'{shop}\n'
+        flag = 0
+        products = {}
+        for product in shop_box.keys():
+            ans += product + ' '+str(answer['x'][index + count]) + '\n'
+            if answer['x'][index + count] != 0:
+                products[product] = answer['x'][index + count]
+                flag += 1
+            count += len(list(all_counts.keys()))
+        if flag != 0:
+            pass
+            # print(ans)
+        if len(products) != 0:
+            shops[shop] = products
+
+    finish = time.time()
+    min_price_answer['shops'] = shops
+    print(min_price_answer)
+    print('Время ', finish-start)
+    return min_price_answer
 def create_answer_min_price(data):
     start = time.time()
     shop_box = {}
@@ -140,37 +571,32 @@ def create_answer_min_price(data):
 
     answer = linprog(c, A_ub, b_ub, A_eq, b_eq)
     print('Цена: ', answer['fun'])
-
+    min_price_answer = {'price': answer['fun']}
+    shops = {}
     for index, shop in enumerate(list(all_counts.keys())):
         # print(shop)
         count = 0
         ans = f'{shop}\n'
         flag = 0
+        products = {}
         for product in shop_box.keys():
-            ans += str(answer['x'][index + count]) + '\n'
+            ans += product + ' '+str(answer['x'][index + count]) + '\n'
             if answer['x'][index + count] != 0:
+                products[product] = answer['x'][index + count]
                 flag += 1
             count += len(list(all_counts.keys()))
         if flag != 0:
-            print(ans)
+            pass
+            # print(ans)
+        if len(products) != 0:
+            shops[shop] = products
 
     finish = time.time()
+    min_price_answer['shops'] = shops
+    print(min_price_answer)
     print('Время ', finish-start)
+    return min_price_answer
 
-
-def bfs_mod(self, graph, start):
-    visited = set()
-    queue = deque([start])
-    visited.add(start)
-    while queue:
-        vertex = queue.popleft()
-        print(vertex)  # Здесь можно выполнить любые операции с вершиной
-        min = 10000000
-        for neighbor in graph.vertexs[vertex].neighbors:
-            if neighbor not in visited:
-                visited.add(neighbor)
-                queue.append(neighbor)
-    return visited
 
 # # calc.create_answer_min_price(shop_box, )
 # # calc.create_answer_min_price(shop_box, result)

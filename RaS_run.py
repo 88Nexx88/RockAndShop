@@ -7,6 +7,7 @@ from storage.value_class import Value_page
 
 def main(page: Page):
     page.title = 'Rock and Shop? Yeep!'
+    page.scroll = 'auto'
     page.theme = theme.Theme(color_scheme_seed='#654E92')
     page.theme.scrollbar_theme = ScrollbarTheme(thumb_color='black')
     page.theme_mode = "dark"
@@ -30,5 +31,5 @@ def main(page: Page):
     page.update()
 
 
-# app(target=main, view=WEB_BROWSER, port=8080, assets_dir="assets", upload_dir="assets/user")
-app(target=main, assets_dir="assets", upload_dir="assets/user")
+app(target=main, view=WEB_BROWSER, port=8080, assets_dir="assets", upload_dir="assets/user")
+# app(target=main, assets_dir="assets", upload_dir="assets/user")

@@ -214,6 +214,8 @@ def calc_(result):
             for i, _  in enumerate(all_answer[a]):
                 print(f"{a} - {all_answer[a][i]['dist']} - {all_answer[a][i]['price']}")
 
+    return all_answer
+
 
 def create_answer_min_path(data, current_path):
     kost = 'Владимир '
@@ -388,15 +390,22 @@ def create_answer_all(data, min_price_answer):
         for s in list(opt_answer[index]['shops'].keys()):
             a.append(s)
         opt_answer[index]['price'] = cl.calculate_price(a)
+
+    opt_answer.append(max_path_answer)
+    for i in cl.another_answer:
+        opt_answer.append(i)
     optimal_answer = []
     optimal_answer2 = []
     for index, ans in enumerate(opt_answer):
         if (opt_answer[index]['dist'] <= min_price_answer['dist'] and opt_answer[index]['price'] <= min_dist_answer['price']):
-            optimal_answer.append(opt_answer[index])
+            if ((opt_answer[index]['price'] > min_price_answer['price'] and opt_answer[index]['dist'] > min_dist_answer['dist'])):
+                optimal_answer.append(opt_answer[index])
         else:
             if ((opt_answer[index]['dist'] <= min_price_answer['dist']*1.20 and opt_answer[index]['price'] <= min_dist_answer['price'])
                     or (opt_answer[index]['dist'] <= min_price_answer['dist'] and opt_answer[index]['price'] <= min_dist_answer['price']*1.20)):
-                optimal_answer2.append(opt_answer[index])
+                if ((opt_answer[index]['price'] > min_price_answer['price'] and opt_answer[index]['dist'] >
+                     min_dist_answer['dist'])):
+                    optimal_answer2.append(opt_answer[index])
     if len(optimal_answer) == 0:
         if len(optimal_answer2) != 0:
             optimal_answer = optimal_answer2.copy()
@@ -410,9 +419,6 @@ def create_answer_all(data, min_price_answer):
     # opt_answer = cl.calc_all_path(graph, shop_box, min_price_answer, min_dist_answer)
     # finish = time.time()
     # print(f'Vremy ^ {finish - start}')
-    optimal_answer.append(max_path_answer)
-    for i in cl.another_answer:
-        optimal_answer.append(i)
 
 
     for option in optimal_answer:

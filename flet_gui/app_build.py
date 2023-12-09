@@ -13,8 +13,10 @@ from storage import result_find
 
 
 class Result():
-    def __init__(self, page):
+    def __init__(self, page, answer_calc, result):
         self.page = page
+        self.answer_calc = answer_calc
+        self.result = result
         self.page.theme.scrollbar_theme = ScrollbarTheme(thumb_color='white')
 
         self.create_appbar()
@@ -49,32 +51,64 @@ class Result():
         )
         self.page.add(self.appbar)
 
-    def generate_marshrut_list(self, result):
-        names = ['Самый выгодный (Ваше предпочтение)', 'Самый быстрый', 'Самый оптимальный']
+    def generate_marshrut_list(self):
+        user_prior = self.result
+        names = {'price':'Самый выгодный по цене', 'dist':'Самый быстрый', 'opt_answer':'Оптимальный'}
+        # names.remove(user_prior)
         all = Column()
-        for name in names:
-            col = Column(controls=[Text(name, size=25, weight='bold')])
+        for var in self.answer_calc:
+            col = Column(controls=[Text(names[var], size=25, weight='bold')])
             r = Row(scroll='ADAPTIVE')
-            for i in range(3):
+            if var == 'opt_answer':
+                for i, _ in enumerate(self.answer_calc[var]):
+                    d = ft.Card(
+                        content=ft.Container(
+                            content=ft.Column(
+                                [
+                                    ft.ListTile(
+                                        leading=ft.Icon(ft.icons.ROUTE, color='black', size=20),
+                                        title=ft.Text(f"Маршрут {i+1}", color='black', size=18, weight='bold'),
+                                        subtitle=Row(controls=[Row(controls=[Text('Расстояние: ', color='black', size=16),
+                                                                             Text(round(self.answer_calc[var][i]['dist'], 1), size=16, weight='bold', color='red')]),
+                                                               Row(controls=[Text('Цена: ', color='black', size=16),
+                                                                             Text(round(self.answer_calc[var][i]['price'], 2), size=16, weight='bold', color='green')])]),
+                                    ),
+                                    ft.Row(
+                                        [ft.ElevatedButton("Подробнее", color='black', bgcolor='#DFFFD8'), ft.ElevatedButton("Посмотреть маршрут", color='black', bgcolor='#DFFFD8')],
+                                        alignment=ft.MainAxisAlignment.END,
+                                    ),
+                                ]
+                            ),
+                            width=380,
+                            padding=10,
+
+                        ),
+                        color='#E8D5C4'
+                    )
+                    r.controls.append(d)
+            else:
                 d = ft.Card(
                     content=ft.Container(
                         content=ft.Column(
                             [
                                 ft.ListTile(
                                     leading=ft.Icon(ft.icons.ROUTE, color='black', size=20),
-                                    title=ft.Text(f"Маршрут {i+1}", color='black', size=18, weight='bold'),
-                                    subtitle=Row(controls=[Row(controls=[Text('Расстояние: ', color='black', size=18),
-                                                                         Text('1200', size=18, weight='bold', color='red')]),
-                                                           Row(controls=[Text('Цена: ', color='black', size=18),
-                                                                         Text('1200', size=18, weight='bold', color='green')])]),
+                                    title=ft.Text(f"Маршрут", color='black', size=18, weight='bold'),
+                                    subtitle=Row(controls=[Row(controls=[Text('Расстояние: ', color='black', size=16),
+                                                                         Text(round(self.answer_calc[var]['dist'], 1), size=16, weight='bold',
+                                                                              color='red')]),
+                                                           Row(controls=[Text('Цена: ', color='black', size=16),
+                                                                         Text(round(self.answer_calc[var]['price'], 2), size=16, weight='bold',
+                                                                              color='green')])]),
                                 ),
                                 ft.Row(
-                                    [ft.ElevatedButton("Подробнее", color='black', bgcolor='#DFFFD8'), ft.ElevatedButton("Посмотреть маршрут", color='black', bgcolor='#DFFFD8')],
+                                    [ft.ElevatedButton("Подробнее", color='black', bgcolor='#DFFFD8'),
+                                     ft.ElevatedButton("Посмотреть маршрут", color='black', bgcolor='#DFFFD8')],
                                     alignment=ft.MainAxisAlignment.END,
                                 ),
                             ]
                         ),
-                        width=360,
+                        width=380,
                         padding=10,
 
                     ),
@@ -85,7 +119,7 @@ class Result():
             all.controls.append(col)
         return all
     def result_marshrut(self):
-        col = self.generate_marshrut_list('123')
+        col = self.generate_marshrut_list()
         page_1 = Container(
             width=1000,
             height=self.page.height * 0.92,
@@ -99,7 +133,7 @@ class Result():
                 Container(content=Text('Рассчитанные маршруты: ', size=34, weight='bold')),
                 col,
                 Container(height=self.page.height * 0.027),
-                Container(content=Row(controls=[Text('Удачной покупки', size=34, weight='bold'), Icon(icons.FAVORITE, color='pink')], alignment=MainAxisAlignment.CENTER)),
+                Container(content=Row(controls=[Text('Удачной покупки', size=34, weight='bold'), Icon(icons.FAVORITE, color='pink'), ElevatedButton(text='Вернуться в начало', color='black', bgcolor='#E8D5C4')], alignment=MainAxisAlignment.CENTER)),
             ]
             )
         )
@@ -148,7 +182,7 @@ class Calc_reclam():
 
     def next_page(self, e):
         self.page.controls.clear()
-        Result(self.page)
+        Result(self.page, self.answer_calc, self.result['mode'])
 
     def calculation(self):
         products = []
@@ -161,7 +195,7 @@ class Calc_reclam():
         time.sleep(3)
         for i in self.value_page.list_korzina:
             res = find_products.search_fts_table(i.name.content.content.value)
-            user_counts.append(i.count)
+            user_counts.append(int(i.count))
             products.append(res[0]['name'])
             prices.append(res[0]['sale'])
             counts.append(res[0]['count'])
@@ -175,11 +209,10 @@ class Calc_reclam():
         self.result['user_counts'] = user_counts
         self.result['price_one'] = price_one
         print(self.result)
-        calc.calc_(self.result)
-        time.sleep(1)
+        self.answer_calc = calc.calc_(self.result)
         self.progress_bar.content.controls[0].value = 'Рассчёт окончен!'
         self.page.update()
-        time.sleep(2)
+        time.sleep(1)
         self.progress_bar.content = Row(
             controls=[
                 Text(value=''),
@@ -414,7 +447,7 @@ class Calc_param():
         self.create_appbar()
 
         cg = Dropdown(
-                          value='Самый оптимальный',
+                          value='Самый быстрый',
                           label="Параметр эффективности варианта",
                           bgcolor='#667FBA',
                           focused_bgcolor='#667FBA',
@@ -428,7 +461,7 @@ class Calc_param():
                           border_radius=10, options=[
                               ft.dropdown.Option("Самый быстрый"),
                               ft.dropdown.Option("Самый выгодный по цене"),
-                              ft.dropdown.Option("Самый оптимальный")
+                              ft.dropdown.Option("Оптимальный")
             ])
 
         rg = Dropdown(

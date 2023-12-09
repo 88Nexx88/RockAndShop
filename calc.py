@@ -83,6 +83,8 @@ class Calc_distance():
     #
     #     return result
 
+    def get_combinations_modern(self, vertex, depth, current_depth=0, path=None, result=None):
+        pass
 
     def get_combinations_with_distance(self, vertex, depth, current_depth=0, path=None, result=None):
         if path is None:
@@ -194,14 +196,23 @@ class Calc_distance():
             # print(combinations_with_distance)
 
         # print(f'Answer dist = ', self.min_answer_dist)
-        print(f'another answer = ', self.another_answer)
-        print(f'answer = ', self.min_answer_dist)
+        # print(f'another answer = ', self.another_answer)
+        # print(f'answer = ', self.min_answer_dist)
         return self.min_answer_dist
 
 
 def calc_(result):
     min_price_answer = create_answer_min_price(result)
-    min_dist_answer = create_answer_distance(result, min_price_answer)
+    all_answer = create_answer_all(result, min_price_answer)
+    for a in all_answer:
+        print(a, all_answer[a])
+
+    for a in all_answer:
+        if type(all_answer[a]) == type(dict()):
+            print(f"{a} - {all_answer[a]['dist']} - {all_answer[a]['price']}")
+        else:
+            for i, _  in enumerate(all_answer[a]):
+                print(f"{a} - {all_answer[a][i]['dist']} - {all_answer[a][i]['price']}")
 
 
 def create_answer_min_path(data, current_path):
@@ -283,7 +294,7 @@ def create_answer_min_path(data, current_path):
             A_eq[i, j] = 1
 
     answer = linprog(c, A_ub, b_ub, A_eq, b_eq)
-    print('Цена Расстоянием: ', answer['fun'])
+    # print('Цена Расстоянием: ', answer['fun'])
     min_price_answer = {'price': answer['fun']}
     shops = {}
     for index, shop in enumerate(list(all_counts.keys())):
@@ -306,11 +317,11 @@ def create_answer_min_path(data, current_path):
 
     finish = time.time()
     min_price_answer['shops'] = shops
-    print(min_price_answer)
-    print('Время ', finish-start)
+    # print(min_price_answer)
+    print('Время мин пути', finish-start)
     return min_price_answer
 
-def create_answer_distance(data, min_price_answer):
+def create_answer_all(data, min_price_answer):
     shop_box = {}
     for i, val in enumerate(data['products']):
         shop_box[val] = int(data['user_counts'][i])
@@ -332,7 +343,6 @@ def create_answer_distance(data, min_price_answer):
     s = shops.keys()
     edges = calc_edge(s, data['adress'], 0 if data['mode1'] == 'Пешком' else 1)
     #
-    start = time.time()
     graph = Graph()
     graph.add_vertex('client', [], [], [])
     for shop, value in shops.items():
@@ -347,23 +357,74 @@ def create_answer_distance(data, min_price_answer):
     max_path_answer = create_answer_min_path(data, edges)
 
     cl = Calc_distance()
-    list_name = []
+    list_name = ['client']
     for shop1 in list(min_price_answer['shops'].keys()):
         if 'Владимир ' not in shop1:
             list_name.append('Владимир '+shop1)
         else:
             list_name.append(shop1)
-    min_price_answer['dist'] = graph.calc_distance(list_name)
+
+    max_path_answer['path'] = list(max_path_answer['shops'].keys())
+    max_path_answer['path'].append('client')
+    max_path_answer['dist'] = graph.calc_distance(max_path_answer['path'])
+
+    start = time.time()
     min_dist_answer = cl.calc_min_path(graph, shop_box, max_path_answer)
     finish = time.time()
-    print(f'Vremy ^ {finish-start}')
+    print(f'Время мин расстояния {finish - start}')
+
+    max_path_answer['price'] = cl.calculate_price(max_path_answer['path'])
+
+    min_price_answer['path'] = list_name
+    min_price_answer['dist'] = graph.calc_distance(min_price_answer['path'])
+
+
 
     # start = time.time()
+    opt_answer = create_answer_min_path_price(data, edges)
+    for index, ans in enumerate(opt_answer):
+        opt_answer[index]['dist'] = graph.calc_distance(list(opt_answer[index]['shops'].keys()))
+        a = ['client']
+        for s in list(opt_answer[index]['shops'].keys()):
+            a.append(s)
+        opt_answer[index]['price'] = cl.calculate_price(a)
+    optimal_answer = []
+    optimal_answer2 = []
+    for index, ans in enumerate(opt_answer):
+        if (opt_answer[index]['dist'] <= min_price_answer['dist'] and opt_answer[index]['price'] <= min_dist_answer['price']):
+            optimal_answer.append(opt_answer[index])
+        else:
+            if ((opt_answer[index]['dist'] <= min_price_answer['dist']*1.20 and opt_answer[index]['price'] <= min_dist_answer['price'])
+                    or (opt_answer[index]['dist'] <= min_price_answer['dist'] and opt_answer[index]['price'] <= min_dist_answer['price']*1.20)):
+                optimal_answer2.append(opt_answer[index])
+    if len(optimal_answer) == 0:
+        if len(optimal_answer2) != 0:
+            optimal_answer = optimal_answer2.copy()
+    unique_options = []
+    seen = set()
+
+
+    # print(len(opt_answer), len(optimal_answer), len(optimal_answer2))
+
+    # print(opt_answer)
     # opt_answer = cl.calc_all_path(graph, shop_box, min_price_answer, min_dist_answer)
     # finish = time.time()
     # print(f'Vremy ^ {finish - start}')
+    optimal_answer.append(max_path_answer)
+    for i in cl.another_answer:
+        optimal_answer.append(i)
 
-    return min_dist_answer
+
+    for option in optimal_answer:
+        option_tuple = (option['price'], option['dist'])
+        if option_tuple not in seen:
+            unique_options.append(option)
+            seen.add(option_tuple)
+
+    optimal_answer = unique_options.copy()
+
+    answer_all = {'price': min_price_answer, 'dist':min_dist_answer, 'opt_answer':optimal_answer}
+    return answer_all
     # graph.show_all_vertices()
 
 
@@ -404,116 +465,127 @@ def calc_edge(shops, address, mode):
     # for shop in current_data:
     #     print(shop, current_data[shop])
 
-    print(f'Vremy ', finish-start)
+    print(f'Время рассчёта маршрутов ', finish-start)
 
     return current_data
 
-
-def create_answer_min_path(data, current_path):
+def create_answer_min_path_price(data, current_path):
     kost = 'Владимир '
     start = time.time()
     shop_box = {}
     for i, val in enumerate(data['products']):
         shop_box[val] = int(data['user_counts'][i])
 
-    all_path = {}
-    for index, d in enumerate(data['shops']):
-        for ind, val in enumerate(d):
-            if kost not in val:
-                val = kost+val
-            all_path[val] = [10000000 for i in range(len(shop_box.keys()))]
+    weight_cost = 1.7  # Вес для стоимости
+    weight_distance = -0.1  # Вес для расстояния
+    all_answer = []
+    for i in range(7):
+        weight_cost -= 0.15
+        weight_distance += 0.15
+        all_path = {}
+        for index, d in enumerate(data['shops']):
+            for ind, val in enumerate(d):
+                if kost not in val:
+                    val = kost + val
+                all_path[val] = [10000000 for i in range(len(shop_box.keys()))]
 
-    for index, d in enumerate(data['shops']):
-        for ind, val in enumerate(d):
-            if kost not in val:
-                val = kost+val
-            all_path[val][index] = current_path['client'][val]
+        for index, d in enumerate(data['shops']):
+            for ind, val in enumerate(d):
+                if kost not in val:
+                    val = kost + val
+                all_path[val][index] = current_path['client'][val] / data['user_counts'][index]
 
+        all_price = {}
+        for index, d in enumerate(data['shops']):
+            for ind, val in enumerate(d):
+                if kost not in val:
+                    val = kost + val
+                all_price[val] = [10000 for i in range(len(shop_box.keys()))]
 
-    all_price = {}
-    for index, d in enumerate(data['shops']):
-        for ind, val in enumerate(d):
-            if kost not in val:
-                val = kost+val
-            all_price[val] = [10000 for i in range(len(shop_box.keys()))]
+        for index, d in enumerate(data['shops']):
+            for ind, val in enumerate(d):
+                if kost not in val:
+                    val = kost + val
+                all_price[val][index] = data['prices'][index][ind]
 
-    for index, d in enumerate(data['shops']):
-        for ind, val in enumerate(d):
-            if kost not in val:
-                val = kost+val
-            all_price[val][index] = data['prices'][index][ind]
+        all_counts = {}
+        for index, d in enumerate(data['shops']):
+            for ind, val in enumerate(d):
+                if kost not in val:
+                    val = kost + val
+                all_counts[val] = [0 for i in range(len(shop_box.keys()))]
 
-    all_counts = {}
-    for index, d in enumerate(data['shops']):
-        for ind, val in enumerate(d):
-            if kost not in val:
-                val = kost+val
-            all_counts[val] = [0 for i in range(len(shop_box.keys()))]
+        for index, d in enumerate(data['shops']):
+            for ind, val in enumerate(d):
+                if kost not in val:
+                    val = kost + val
+                all_counts[val][index] = data['counts'][index][ind]
 
-    for index, d in enumerate(data['shops']):
-        for ind, val in enumerate(d):
-            if kost not in val:
-                val = kost+val
-            all_counts[val][index] = data['counts'][index][ind]
-
-    b_ub = []
-    count = 0
-    for product in shop_box:
-        for key in all_counts:
-            b_ub.append(all_counts[key][count])
-        count += 1
-
-    a_val = []
-    count = 0
-    for product in shop_box:
-        a = []
-        for key in all_path:
-            a.append(all_path[key][count])
-        count += 1
-        a_val.append(a)
-
-    A = np.array(a_val)
-    b_eq = list(shop_box.values())
-    m, n = A.shape
-    c = list(np.reshape(A, n * m))  # Преобразование матрицы A в список c.
-    A_ub = np.zeros([n * m, m * n])
-    for i in np.arange(0, n * m, 1):  # Заполнение матрицы условий –неравенств.
-        for j in np.arange(0, n * m, 1):
-            if i == j:
-                A_ub[i, j] = 1
-
-    A_eq = np.zeros([m, m * n])
-    for i in np.arange(0, m, 1):  # Заполнение матрицы условий –равенств.
-        for j in np.arange(i * n, n * (i + 1), 1):
-            A_eq[i, j] = 1
-
-    answer = linprog(c, A_ub, b_ub, A_eq, b_eq)
-    print('Цена: ', answer['fun'])
-    min_price_answer = {'price': answer['fun']}
-    shops = {}
-    for index, shop in enumerate(list(all_counts.keys())):
-        # print(shop)
+        b_ub = []
         count = 0
-        ans = f'{shop}\n'
-        flag = 0
-        products = {}
-        for product in shop_box.keys():
-            ans += product + ' '+str(answer['x'][index + count]) + '\n'
-            if answer['x'][index + count] != 0:
-                products[product] = answer['x'][index + count]
-                flag += 1
-            count += len(list(all_counts.keys()))
-        if flag != 0:
-            pass
-            # print(ans)
-        if len(products) != 0:
-            shops[shop] = products
+        for product in shop_box:
+            for key in all_counts:
+                b_ub.append(all_counts[key][count])
+            count += 1
 
+        a_val = []
+        count = 0
+        for product in shop_box:
+            a = []
+            for key in all_path:
+                a.append(all_path[key][count] * weight_distance + all_price[key][count] * weight_cost)
+            count += 1
+            a_val.append(a)
+
+        A = np.array(a_val)
+
+        b_eq = list(shop_box.values())
+        m, n = A.shape
+        c = list(np.reshape(A, n * m))  # Преобразование матрицы A в список c.
+        A_ub = np.zeros([n * m, m * n])
+        for i in np.arange(0, n * m, 1):  # Заполнение матрицы условий –неравенств.
+            for j in np.arange(0, n * m, 1):
+                if i == j:
+                    A_ub[i, j] = 1
+
+        A_eq = np.zeros([m, m * n])
+        for i in np.arange(0, m, 1):  # Заполнение матрицы условий –равенств.
+            for j in np.arange(i * n, n * (i + 1), 1):
+                A_eq[i, j] = 1
+
+        answer = linprog(c, A_ub, b_ub, A_eq, b_eq)
+        # print('Цена: ', answer['fun'])
+        min_answer = {'price': answer['fun']}
+        shops = {}
+        for index, shop in enumerate(list(all_counts.keys())):
+            # print(shop)
+            count = 0
+            ans = f'{shop}\n'
+            flag = 0
+            products = {}
+            for product in shop_box.keys():
+                ans += product + ' ' + str(answer['x'][index + count]) + '\n'
+                if answer['x'][index + count] != 0:
+                    products[product] = answer['x'][index + count]
+                    flag += 1
+                count += len(list(all_counts.keys()))
+            if flag != 0:
+                pass
+                # print(ans)
+            if len(products) != 0:
+                shops[shop] = products
+
+
+        min_answer['shops'] = shops
+        all_answer.append(min_answer)
+        # print(min_answer)
     finish = time.time()
-    min_price_answer['shops'] = shops
-    print(min_price_answer)
-    print('Время ', finish-start)
-    return min_price_answer
+    print('Время мин по цене и раст', finish - start)
+
+    return all_answer
+
+
+
 def create_answer_min_price(data):
     start = time.time()
     shop_box = {}
@@ -570,7 +642,7 @@ def create_answer_min_price(data):
             A_eq[i, j] = 1
 
     answer = linprog(c, A_ub, b_ub, A_eq, b_eq)
-    print('Цена: ', answer['fun'])
+    # print('Цена: ', answer['fun'])
     min_price_answer = {'price': answer['fun']}
     shops = {}
     for index, shop in enumerate(list(all_counts.keys())):
@@ -593,8 +665,8 @@ def create_answer_min_price(data):
 
     finish = time.time()
     min_price_answer['shops'] = shops
-    print(min_price_answer)
-    print('Время ', finish-start)
+    # print(min_price_answer)
+    print('Время мин цены', finish-start)
     return min_price_answer
 
 

@@ -12,17 +12,12 @@ def create_correct_name(name: str) -> str:
 
 def find_image_product(name: str) -> str:
     # Проверяем, существует ли файл с изображением
-    first = "Shops/All/img/" + name.split('\n')[0].replace('/', "").replace(
-            ".", "").replace(
-        '-',"").replace("%", '').replace(
-        ",", '').replace("+", "").replace(
-        "'", "").replace("&", "").replace(
-        "(", "").replace(")", "")+".png"
-    second = "Shops/All/img/"+name.replace("/", '-').replace("/", "-")+".png"
+    first = "Shops/All/img/" + name.split('\n')[0].translate(str.maketrans("", "", r'!"№;%:?*().-,_+=/\|@#$^&'))+".png"
+    # second = "Shops/All/img/"+name.replace("/", '-').replace("/", "-")+".png"
     if os.path.exists(first):
         return first
-    elif os.path.exists(second):
-        return second
+    # elif os.path.exists(second):
+    #     return second
     else:
         return "error"
 
@@ -117,5 +112,9 @@ def drop_all_tables(database_file="db.db3"):
 if __name__ == "__main__":
     start = time.time()
     question = input("Режим работы\n1 - создание таблицы\n2 - удаление всех таблиц")
-    create_unique_table("db.db3", "Shops/All/", "Shops/All/img/")
-    print(f"running time - {(time.time() - start) / 60 } min")
+    match question:
+        case "1":
+            create_unique_table("db.db3", "Shops/All/", "Shops/All/img/")
+            print(f"running time - {(time.time() - start) / 60 } min")
+        case "2":
+            drop_all_tables('db.db3')

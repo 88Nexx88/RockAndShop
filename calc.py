@@ -13,6 +13,11 @@ from collections import deque
 
 
 class Calc_distance():
+
+    def __init__(self, shop_box, graph):
+        self.another_answer = []
+        self.shop_box = shop_box
+        self.graph = graph
     def create_answer(self, path):
         answer = {}
         current_shop_box = dict(self.shop_box.items())
@@ -32,6 +37,16 @@ class Calc_distance():
             answer[self.graph.vertexs[path[i]].name] = all_product
 
         return answer
+
+
+    def calculate_price_shops(self, shops):
+        price = 0
+        current_shop_box = dict(self.shop_box.items())
+        for shop in shops:
+            for product in shops[shop]:
+                price += self.graph.vertexs[shop].all_products[product][0] * shops[shop][product]
+
+        return price
 
     def calculate_price(self, path):
         price = 0
@@ -204,8 +219,8 @@ class Calc_distance():
 def calc_(result):
     min_price_answer = create_answer_min_price(result)
     all_answer = create_answer_all(result, min_price_answer)
-    for a in all_answer:
-        print(a, all_answer[a])
+    # for a in all_answer:
+    #     print(a, all_answer[a])
 
     for a in all_answer:
         if type(all_answer[a]) == type(dict()):
@@ -235,7 +250,7 @@ def create_answer_min_path(data, current_path):
         for ind, val in enumerate(d):
             if kost not in val:
                 val = kost+val
-            all_path[val][index] = current_path['client'][val]
+            all_path[val][index] = current_path['client'][val] / data['user_counts'][index]
 
 
     all_price = {}
@@ -358,7 +373,7 @@ def create_answer_all(data, min_price_answer):
 
     max_path_answer = create_answer_min_path(data, edges)
 
-    cl = Calc_distance()
+    cl = Calc_distance(shop_box, graph)
     list_name = ['client']
     for shop1 in list(min_price_answer['shops'].keys()):
         if 'Владимир ' not in shop1:
@@ -368,41 +383,48 @@ def create_answer_all(data, min_price_answer):
 
     max_path_answer['path'] = list(max_path_answer['shops'].keys())
     max_path_answer['path'].append('client')
-    max_path_answer['dist'] = graph.calc_distance(max_path_answer['path'])
+    max_path_answer['tsp'], max_path_answer['dist'] = graph.calc_distance(max_path_answer['path'])
 
     start = time.time()
-    min_dist_answer = cl.calc_min_path(graph, shop_box, max_path_answer)
-    finish = time.time()
-    print(f'Время мин расстояния {finish - start}')
+    if len(shop_box) < 12:
+        start = time.time()
+        min_dist_answer = cl.calc_min_path(graph, shop_box, max_path_answer)
+        finish = time.time()
+        print(f'Время мин расстояния {finish - start}')
+    else:
+        min_dist_answer = {}
 
-    max_path_answer['price'] = cl.calculate_price(max_path_answer['path'])
+
+    max_path_answer['price'] = cl.calculate_price_shops(max_path_answer['shops'])
+
 
     min_price_answer['path'] = list_name
-    min_price_answer['dist'] = graph.calc_distance(min_price_answer['path'])
+    min_price_answer['tsp'], min_price_answer['dist'] = graph.calc_distance(min_price_answer['path'])
+    # min_price_answer['price'] = cl.calculate_price_shops(min_price_answer['shops'])
 
 
 
     # start = time.time()
     opt_answer = create_answer_min_path_price(data, edges)
     for index, ans in enumerate(opt_answer):
-        opt_answer[index]['dist'] = graph.calc_distance(list(opt_answer[index]['shops'].keys()))
-        a = ['client']
-        for s in list(opt_answer[index]['shops'].keys()):
-            a.append(s)
-        opt_answer[index]['price'] = cl.calculate_price(a)
-
-    opt_answer.append(max_path_answer)
+        opt_answer[index]['tsp'], opt_answer[index]['dist'] = graph.calc_distance(list(opt_answer[index]['shops'].keys()))
+        opt_answer[index]['price'] = cl.calculate_price_shops(opt_answer[index]['shops'])
+    if len(shop_box) < 12:
+        opt_answer.append(max_path_answer)
+    else:
+        min_dist_answer = max_path_answer
     for i in cl.another_answer:
         opt_answer.append(i)
     optimal_answer = []
     optimal_answer2 = []
+    # print(opt_answer)
     for index, ans in enumerate(opt_answer):
-        if (opt_answer[index]['dist'] <= min_price_answer['dist'] and opt_answer[index]['price'] <= min_dist_answer['price']):
+        if (opt_answer[index]['dist'] < min_price_answer['dist'] and opt_answer[index]['price'] < min_dist_answer['price']):
             if ((opt_answer[index]['price'] > min_price_answer['price'] and opt_answer[index]['dist'] > min_dist_answer['dist'])):
                 optimal_answer.append(opt_answer[index])
         else:
-            if ((opt_answer[index]['dist'] <= min_price_answer['dist']*1.20 and opt_answer[index]['price'] <= min_dist_answer['price'])
-                    or (opt_answer[index]['dist'] <= min_price_answer['dist'] and opt_answer[index]['price'] <= min_dist_answer['price']*1.20)):
+            if ((opt_answer[index]['dist'] < (min_price_answer['dist']*1.20) and opt_answer[index]['price'] < min_dist_answer['price'])
+                    or (opt_answer[index]['dist'] < min_price_answer['dist'] and opt_answer[index]['price'] < (min_dist_answer['price']*1.20))):
                 if ((opt_answer[index]['price'] > min_price_answer['price'] and opt_answer[index]['dist'] >
                      min_dist_answer['dist'])):
                     optimal_answer2.append(opt_answer[index])
@@ -429,7 +451,27 @@ def create_answer_all(data, min_price_answer):
 
     optimal_answer = unique_options.copy()
 
-    answer_all = {'price': min_price_answer, 'dist':min_dist_answer, 'opt_answer':optimal_answer}
+    # проверка минимальных ответов
+    if min_price_answer['price'] == min_dist_answer['price']:
+        optimal_answer = [min_dist_answer]
+    if min_price_answer['dist'] == min_dist_answer['dist']:
+        optimal_answer = [min_price_answer]
+    if len(optimal_answer) == 0:
+        optimal_answer.append(min_dist_answer)
+        optimal_answer.append(min_price_answer)
+    best_answer = {}
+    min_dist = 10000000
+    min_price = 10000000
+    for answ in optimal_answer:
+        if min_dist > abs(answ['dist'] - min_dist_answer['dist']):
+            if min_price > abs(answ['price'] - min_price_answer['price']):
+                min_price = abs(answ['price'] - min_price_answer['price'])
+                min_dist = abs(answ['dist'] - min_price_answer['dist'])
+                best_answer = answ
+    # print('!!!', best_answer['dist'], best_answer['price'])
+
+
+    answer_all = {'price': min_price_answer, 'dist':min_dist_answer, 'opt_answer':best_answer, 'all_opt':optimal_answer}
     return answer_all
     # graph.show_all_vertices()
 
@@ -460,7 +502,7 @@ def calc_edge(shops, address, mode):
         current_data[shop] = shop_s
 
     start = time.time()
-    client = calculate_distance_for_user(geocode(address[1]), 'walking' if mode == 0 else 'driving')
+    client = calculate_distance_for_user(geocode(address[1]), shops,'walking' if mode == 0 else 'driving')
     shop_s = {}
     for sh in client:
         if  sh in shops:
@@ -481,11 +523,15 @@ def create_answer_min_path_price(data, current_path):
     shop_box = {}
     for i, val in enumerate(data['products']):
         shop_box[val] = int(data['user_counts'][i])
-
-    weight_cost = 1.7  # Вес для стоимости
-    weight_distance = -0.1  # Вес для расстояния
+    count = 10
+    weight_cost = 2  # Вес для стоимости
+    weight_distance = -0.15  # Вес для расстояния
+    # if len(shop_box) > 12:
+    #     count = 4
+    #     weight_cost = 1.2  # Вес для стоимости
+    #     weight_distance = 0.1  # Вес для расстояния
     all_answer = []
-    for i in range(7):
+    for i in range(count):
         weight_cost -= 0.15
         weight_distance += 0.15
         all_path = {}

@@ -194,7 +194,7 @@ class Calc_reclam():
 
         time.sleep(3)
         for i in self.value_page.list_korzina:
-            res = find_products.search_fts_table(i.name.content.content.value)
+            res = find_products.get_one_products(i.name.content.content.value)
             user_counts.append(int(i.count))
             products.append(res[0]['name'])
             prices.append(res[0]['sale'])

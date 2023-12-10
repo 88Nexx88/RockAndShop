@@ -1,5 +1,8 @@
 from sys import maxsize
 from itertools import permutations
+from python_tsp.heuristics import solve_tsp_simulated_annealing
+import numpy as np
+
 class Vertex():
     def __init__(self, name):
         self.name = name
@@ -43,6 +46,7 @@ class Graph:
 
         return min_path
 
+
     def calc_distance(self, name_vertexs:list):
         graph = []
         for name in name_vertexs:
@@ -51,7 +55,7 @@ class Graph:
                 if neighbor in name_vertexs:
                     graph_row[name_vertexs.index(neighbor)] = self.vertexs[name].neighbors[neighbor]
             graph.append(graph_row)
-        return self.travellingSalesmanProblem(graph, 0)
+        return solve_tsp_simulated_annealing(np.array(graph))
 
 
 

@@ -3,7 +3,7 @@ import json
 import requests
 
 def get_address_shops() -> list:
-    with open('address_coords_for_calculate.json', 'r') as read_file:
+    with open('backend/address_coords_for_calculate.json', encoding='utf-8', mode= 'r') as read_file:
         return [i for i in json.load(read_file)]
 def geocode(address) -> list:
     # URL для запроса к Nominatim

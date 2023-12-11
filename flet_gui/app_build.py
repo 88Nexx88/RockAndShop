@@ -1,15 +1,15 @@
+import json
 import re
 import time
+import webbrowser
+
 import flet as ft
 from flet import *
 from ymaps import *
 
-import calc
 from flet_gui.AutomaticImageCarousel import AutomaticImageCarousel
 from storage.value_class import *
-from backend import find_products
-from storage import result_find
-
+from backend import find_products, calc
 
 
 class Result():
@@ -51,15 +51,147 @@ class Result():
         )
         self.page.add(self.appbar)
 
-    def generate_marshrut_list(self):
-        user_prior = self.result
-        names = {'price':'Самый выгодный по цене', 'dist':'Самый быстрый', 'opt_answer':'Оптимальный'}
+    def color_price(self, value):
+        if value == self.price_current:
+            return 'black'
+        elif value < self.price_current:
+            return 'green'
+        else:
+            return 'red'
+
+    def color_dist(self, value):
+        if value == self.dist_current:
+            return 'black'
+        elif value < self.dist_current:
+            return 'green'
+        else:
+            return 'red'
+
+    def more_info_click(self, e):
+        names_ = {'Самый выгодный по цене': 'price', 'Самый быстрый': 'dist', 'Оптимальный': 'opt_answer',
+                  'Все варианты': 'all'}
+        names = {'price': 'Самый выгодный по цене', 'dist': 'Самый быстрый', 'opt_answer': 'Оптимальный',
+                 'all_opt': 'Все оптимальные'}
+
+        data = {}
+        for ans in self.answer_calc:
+            if names[ans] == e.control.data['key']:
+                if ans == 'all_opt':
+                    data = self.answer_calc[ans][e.control.data['num']]
+                else:
+                    data = self.answer_calc[ans]
+        tsp_shops = [list(data['shops'].keys())[shop-1] for shop in data['tsp'][1:]]
+        col = Container(Column(scroll='ALWAYS'), padding=5)
+        for shop in tsp_shops:
+            col_prod = Column()
+            for product in data['shops'][shop]:
+                col_prod.controls.append(
+                    ft.ListTile(
+                        leading=ft.Icon(ft.icons.TOKEN, color='blue', size=18),
+                        title=ft.Text(f"{product}", color='black', size=18, weight='bold', max_lines=4, width=400),
+                        subtitle=Text(f"Количество: {data['shops'][shop][product]}", size=16, color='black', weight='bold', width=400, text_align=alignment.bottom_right)
+                    ),
+                    )
+            col.content.controls.append(
+                ft.Card(
+                    content=ft.Container(
+                        content=ft.Column(
+                            [
+                                ft.ListTile(
+                                    leading=ft.Icon(ft.icons.SHOP, color='red', size=24),
+                                    title=ft.Text(f"{shop}", color='black', size=20, weight='bold', width=400),
+                                    ),
+                                col_prod
+                            ]
+                        ),
+                        padding=20, width=600
+
+                    ),
+                    color='#E8D5C4'
+                )
+            )
+
+
+
+
+        dlg = ft.AlertDialog(title=ft.Text("Подробнее"), content=
+        Container(content=Column(
+            controls=[
+                Text(f"Маршрут {e.control.data['key']} "+ ('' if e.control.data['num'] == 0 else str(e.control.data['num']+1)), size=18, weight='bold'),
+                Text(f"Режим: {self.result['mode1']}", size=18, weight='bold'),
+                Text(f"Стоимость: {round(data['price'], 2)}, Расстояние: {round(data['dist'], 1)}", size=18, weight='bold'),
+                Text(f"Отправная точка: {self.result['adress'][1]}", size=18, weight='bold'),
+                Text(f"Конечная точка: {self.result['adress'][1]}", size=18, weight='bold'),
+                col
+            ], scroll='ALWAYS'
+        ), width=800, height=self.page.height * 0.92, padding=padding.all(20)))
+        self.page.dialog = dlg
+        dlg.open = True
+        self.page.update()
+
+
+    def marshrut_click(self, e):
+        names_ = {'Самый выгодный по цене': 'price', 'Самый быстрый': 'dist', 'Оптимальный': 'opt_answer',
+                  'Все варианты': 'all'}
+        names = {'price': 'Самый выгодный по цене', 'dist': 'Самый быстрый', 'opt_answer': 'Оптимальный',
+                 'all_opt': 'Все оптимальные'}
+
+        data = {}
+        for ans in self.answer_calc:
+            if names[ans] == e.control.data['key']:
+                if ans == 'all_opt':
+                    data = self.answer_calc[ans][e.control.data['num']]
+                else:
+                    data = self.answer_calc[ans]
+
+        tsp_shops = [list(data['shops'].keys())[shop - 1]  for shop in data['tsp'][1:]]
+
+        with open("backend/address_coords_for_calculate.json", encoding='utf-8', mode='r') as read_file:
+            address_coords = json.load(read_file)
+
+        address_point = [self.result['adress'][0].split(' ')]
+        for point in tsp_shops:
+            address_point.append(address_coords[point].split(','))
+
+        print(address_point)
+        url = 'https://yandex.ru/maps/192/vladimir/?ll='
+        url+=str(self.result['adress'][0].split(' ')[0])+'%2C'+str(self.result['adress'][0].split(' ')[1])
+        url+='&mode=routes&rtext='
+
+        for adr in address_point:
+            if adr != address_point[-1]:
+                url+=str(adr[1])+'%2C'+str(adr[0])+'~'
+            else:
+                url += str(adr[1]) + '%2C' + str(adr[0])+'~' #если конец то на конце &
+        url+=str(self.result['adress'][0].split(' ')[1])+'%2C'+str(self.result['adress'][0].split(' ')[0])+'&'
+        if self.result['mode1'] == 'Пешком':
+            url+='rtt=pd&ruri=~~~&z=17.36'
+        else:
+            url += 'rtt=auto&ruri=~~~&z=17.36'
+        webbrowser.open(url, new=0, autoraise=True)
+
+
+    def more_click(self, e):
+        user_prior = self.result['mode']
+
+        names_ = {'Самый выгодный по цене': 'price', 'Самый быстрый': 'dist', 'Оптимальный': 'opt_answer',
+                  'Все варианты': 'all'}
+        self.answer_list.controls.clear()
+        names = {'price': 'Самый выгодный по цене', 'dist': 'Самый быстрый', 'opt_answer': 'Оптимальный',
+                 'all_opt': 'Все оптимальные'}
         # names.remove(user_prior)
+
+        self.dist_current = round(self.answer_calc[names_[user_prior]]['dist'], 1)
+        self.price_current = round(self.answer_calc[names_[user_prior]]['price'], 2)
+
+
         all = Column()
         for var in self.answer_calc:
+            if var == 'opt_answer':
+                continue
             col = Column(controls=[Text(names[var], size=25, weight='bold')])
             r = Row(scroll='ADAPTIVE')
-            if var == 'opt_answer':
+            if var == 'all_opt':
                 for i, _ in enumerate(self.answer_calc[var]):
                     d = ft.Card(
                         content=ft.Container(
@@ -67,14 +199,18 @@ class Result():
                                 [
                                     ft.ListTile(
                                         leading=ft.Icon(ft.icons.ROUTE, color='black', size=20),
-                                        title=ft.Text(f"Маршрут {i+1}", color='black', size=18, weight='bold'),
-                                        subtitle=Row(controls=[Row(controls=[Text('Расстояние: ', color='black', size=16),
-                                                                             Text(round(self.answer_calc[var][i]['dist'], 1), size=16, weight='bold', color='red')]),
-                                                               Row(controls=[Text('Цена: ', color='black', size=16),
-                                                                             Text(round(self.answer_calc[var][i]['price'], 2), size=16, weight='bold', color='green')])]),
+                                        title=ft.Text(f"Маршрут {i + 1}\n{names[var]}", color='black', size=18, weight='bold'),
+                                        subtitle=Row(
+                                            controls=[Row(controls=[Text('Расстояние: ', color='black', size=16),
+                                                                    Text(round(self.answer_calc[var][i]['dist'], 1),
+                                                                         size=16, weight='bold', color=self.color_dist(round(self.answer_calc[var][i]['dist'], 1)))]),
+                                                      Row(controls=[Text('Цена: ', color='black', size=16),
+                                                                    Text(round(self.answer_calc[var][i]['price'], 2),
+                                                                         size=16, weight='bold', color=self.color_price(round(self.answer_calc[var][i]['price'], 2)))])]),
                                     ),
                                     ft.Row(
-                                        [ft.ElevatedButton("Подробнее", color='black', bgcolor='#DFFFD8'), ft.ElevatedButton("Посмотреть маршрут", color='black', bgcolor='#DFFFD8')],
+                                        [ft.ElevatedButton("Подробнее", color='black', bgcolor='#DFFFD8', on_click=self.more_info_click, data={'key':names[var], 'num':i}),
+                                         ft.ElevatedButton("Посмотреть маршрут", color='black', bgcolor='#DFFFD8', on_click=self.marshrut_click, data={'key':names[var], 'num':i})],
                                         alignment=ft.MainAxisAlignment.END,
                                     ),
                                 ]
@@ -87,55 +223,209 @@ class Result():
                     )
                     r.controls.append(d)
             else:
-                d = ft.Card(
-                    content=ft.Container(
-                        content=ft.Column(
-                            [
-                                ft.ListTile(
-                                    leading=ft.Icon(ft.icons.ROUTE, color='black', size=20),
-                                    title=ft.Text(f"Маршрут", color='black', size=18, weight='bold'),
-                                    subtitle=Row(controls=[Row(controls=[Text('Расстояние: ', color='black', size=16),
-                                                                         Text(round(self.answer_calc[var]['dist'], 1), size=16, weight='bold',
-                                                                              color='red')]),
-                                                           Row(controls=[Text('Цена: ', color='black', size=16),
-                                                                         Text(round(self.answer_calc[var]['price'], 2), size=16, weight='bold',
-                                                                              color='green')])]),
-                                ),
-                                ft.Row(
-                                    [ft.ElevatedButton("Подробнее", color='black', bgcolor='#DFFFD8'),
-                                     ft.ElevatedButton("Посмотреть маршрут", color='black', bgcolor='#DFFFD8')],
-                                    alignment=ft.MainAxisAlignment.END,
-                                ),
-                            ]
-                        ),
-                        width=380,
-                        padding=10,
+                if var == names_[user_prior]:
+                    d = ft.Card(
+                        content=ft.Container(
+                            content=ft.Column(
+                                [
+                                    ft.ListTile(
+                                        leading=ft.Icon(ft.icons.ROUTE, color='black', size=20),
+                                        title=ft.Text(f"Маршрут\n{names[var]}", color='black', size=18, weight='bold'),
+                                        subtitle=Row(controls=[Row(controls=[Text('Расстояние: ', color='black', size=16),
+                                                                             Text(round(self.answer_calc[var]['dist'], 1),
+                                                                                  size=16, weight='bold',
+                                                                                  color=self.color_dist(round(self.answer_calc[var]['dist'], 1)))]),
+                                                               Row(controls=[Text('Цена: ', color='black', size=16),
+                                                                             Text(round(self.answer_calc[var]['price'], 2),
+                                                                                  size=16, weight='bold',
+                                                                                  color=self.color_price(round(self.answer_calc[var]['price'], 2)))])]),
+                                    ),
+                                    ft.Row(
+                                        [ft.ElevatedButton("Подробнее", color='black', bgcolor='#DFFFD8', on_click=self.more_info_click, data={'key':names[var], 'num':0}),
+                                         ft.ElevatedButton("Посмотреть маршрут", color='black', bgcolor='#DFFFD8', on_click=self.marshrut_click, data={'key':names[var], 'num':0})],
+                                        alignment=ft.MainAxisAlignment.END,
+                                    ),
+                                ]
+                            ),
+                            width=380,
+                            padding=10,
 
-                    ),
-                    color='#E8D5C4'
-                )
-                r.controls.append(d)
+                        ),
+                        color='#E8D5C4'
+                    )
+                    r.controls.append(d)
+                else:
+                    d = ft.Card(
+                        content=ft.Container(
+                            content=ft.Column(
+                                [
+                                    ft.ListTile(
+                                        leading=ft.Icon(ft.icons.ROUTE, color='black', size=20),
+                                        title=ft.Text(f"Маршрут\n{names[var]}", color='black', size=18, weight='bold'),
+                                        subtitle=Row(
+                                            controls=[Row(controls=[Text('Расстояние: ', color='black', size=16),
+                                                                    Text(round(self.answer_calc[var]['dist'], 1),
+                                                                         size=16, weight='bold',
+                                                                         color=self.color_dist(round(self.answer_calc[var]['dist'], 1)))]),
+                                                      Row(controls=[Text('Цена: ', color='black', size=16),
+                                                                    Text(round(self.answer_calc[var]['price'], 2),
+                                                                         size=16, weight='bold',
+                                                                         color=self.color_price(round(self.answer_calc[var]['price'], 1)))])]),
+                                    ),
+                                    ft.Row(
+                                        [ft.ElevatedButton("Подробнее", color='black', bgcolor='#DFFFD8', on_click=self.more_info_click, data={'key':names[var], 'num':0}),
+                                         ft.ElevatedButton("Посмотреть маршрут", color='black', bgcolor='#DFFFD8', on_click=self.marshrut_click, data={'key':names[var], 'num':0})],
+                                        alignment=ft.MainAxisAlignment.END,
+                                    ),
+                                ]
+                            ),
+                            width=380,
+                            padding=10,
+
+                        ),
+                        color='#E8D5C4'
+                    )
+                    r.controls.append(d)
             col.controls.append(r)
             all.controls.append(col)
-        return all
+        self.answer_list.controls.append(all)
+        self.page.update()
+    def generate_one_marshrut_list(self):
+        user_prior = self.result['mode']
+        names = {'price': 'Самый выгодный по цене', 'dist': 'Самый быстрый', 'opt_answer': 'Оптимальный',
+                 'all': 'Все варианты', 'all_opt': 'Все оптимальные'}
+        names_ = {'Самый выгодный по цене':'price', 'Самый быстрый':'dist', 'Оптимальный':'opt_answer',
+                 'Все варианты':'all'}
+
+        if names_[user_prior] == 'all':
+            all = Column()
+            for var in self.answer_calc:
+                if var == 'opt_answer':
+                    continue
+                col = Column(controls=[Text(names[var], size=25, weight='bold')])
+                r = Row(scroll='ADAPTIVE')
+                if var == 'all_opt':
+                    for i, _ in enumerate(self.answer_calc[var]):
+                        d = ft.Card(
+                            content=ft.Container(
+                                content=ft.Column(
+                                    [
+                                        ft.ListTile(
+                                            leading=ft.Icon(ft.icons.ROUTE, color='black', size=20),
+                                            title=ft.Text(f"Маршрут {i + 1}\n{names[var]}", color='black', size=18, weight='bold'),
+                                            subtitle=Row(
+                                                controls=[Row(controls=[Text('Расстояние: ', color='black', size=16),
+                                                                        Text(round(self.answer_calc[var][i]['dist'], 1),
+                                                                             size=16, weight='bold', color='black')]),
+                                                          Row(controls=[Text('Цена: ', color='black', size=16),
+                                                                        Text(
+                                                                            round(self.answer_calc[var][i]['price'], 2),
+                                                                            size=16, weight='bold', color='black')])]),
+                                        ),
+                                        ft.Row(
+                                            [ft.ElevatedButton("Подробнее", color='black', bgcolor='#DFFFD8', on_click=self.more_info_click, data={'key':names[var], 'num':i}),
+                                             ft.ElevatedButton("Посмотреть маршрут", color='black', bgcolor='#DFFFD8', on_click=self.marshrut_click, data={'key':names[var], 'num':i})],
+                                            alignment=ft.MainAxisAlignment.END,
+                                        ),
+                                    ]
+                                ),
+                                width=380,
+                                padding=10,
+
+                            ),
+                            color='#E8D5C4'
+                        )
+                        r.controls.append(d)
+                else:
+                    d = ft.Card(
+                        content=ft.Container(
+                            content=ft.Column(
+                                [
+                                    ft.ListTile(
+                                        leading=ft.Icon(ft.icons.ROUTE, color='black', size=20),
+                                        title=ft.Text(f"Маршрут\n{names[var]}", color='black', size=18, weight='bold'),
+                                        subtitle=Row(
+                                            controls=[Row(controls=[Text('Расстояние: ', color='black', size=16),
+                                                                    Text(round(self.answer_calc[var]['dist'], 1),
+                                                                         size=16, weight='bold',
+                                                                         color='black')]),
+                                                      Row(controls=[Text('Цена: ', color='black', size=16),
+                                                                    Text(round(self.answer_calc[var]['price'], 2),
+                                                                         size=16, weight='bold',
+                                                                         color='black')])]),
+                                    ),
+                                    ft.Row(
+                                        [ft.ElevatedButton("Подробнее", color='black', bgcolor='#DFFFD8', on_click=self.more_info_click, data={'key':names[var], 'num':0}),
+                                         ft.ElevatedButton("Посмотреть маршрут", color='black', bgcolor='#DFFFD8', on_click=self.marshrut_click, data={'key':names[var], 'num':0})],
+                                        alignment=ft.MainAxisAlignment.END,
+                                    ),
+                                ]
+                            ),
+                            width=380,
+                            padding=10,
+
+                        ),
+                        color='#E8D5C4'
+                    )
+                    r.controls.append(d)
+                col.controls.append(r)
+                all.controls.append(col)
+            return all
+        else:
+            col = Column(controls=[Text(names[names_[user_prior]], size=25, weight='bold')])
+            d = ft.Card(
+                content=ft.Container(
+                    content=ft.Column(
+                        [
+                            ft.ListTile(
+                                leading=ft.Icon(ft.icons.ROUTE, color='black', size=20),
+                                title=ft.Text(f"Маршрут\n{names[names_[user_prior]]}", color='black', size=18, weight='bold'),
+                                subtitle=Row(controls=[Row(controls=[Text('Расстояние: ', color='black', size=16),
+                                                                     Text(round(self.answer_calc[names_[user_prior]]['dist'], 1),
+                                                                          size=16, weight='bold', color='black')]),
+                                                       Row(controls=[Text('Цена: ', color='black', size=16),
+                                                                     Text(round(self.answer_calc[names_[user_prior]]['price'], 2),
+                                                                          size=16, weight='bold', color='black')])]),
+                            ),
+                            ft.Row(
+                                [ft.ElevatedButton("Подробнее", color='black', bgcolor='#DFFFD8', on_click=self.more_info_click, data={'key':names[names_[user_prior]], 'num':0}),
+                                 ft.ElevatedButton("Посмотреть маршрут", color='black', bgcolor='#DFFFD8', on_click=self.marshrut_click, data={'key':names[names_[user_prior]], 'num':0})],
+                                alignment=ft.MainAxisAlignment.END,
+                            ),
+                        ]
+                    ),
+                    width=380,
+                    padding=10,
+
+                ),
+                color='#E8D5C4'
+            )
+            col.controls.append(d)
+            col.controls.append(Row(controls=[ElevatedButton(text='Посмотреть все варианты', color='black', bgcolor='#E8D5C4', on_click=self.more_click)], alignment=MainAxisAlignment.END))
+            return col
+
     def result_marshrut(self):
-        col = self.generate_marshrut_list()
+        self.answer_list = self.generate_one_marshrut_list()
         page_1 = Container(
             width=1000,
             height=self.page.height * 0.92,
             border_radius=35,
             bgcolor='#2E4374',
             alignment=alignment.center,
-            padding=padding.only(left=80, top=self.page.height * 0.037, right=80),
+            padding=padding.only(left=80, top=self.page.height * 0.037, right=80, bottom=self.page.height * 0.037),
 
             content=Column(controls=[
                 Container(height=self.page.height*0.009),
                 Container(content=Text('Рассчитанные маршруты: ', size=34, weight='bold')),
-                col,
+                self.answer_list,
                 Container(height=self.page.height * 0.027),
-                Container(content=Row(controls=[Text('Удачной покупки', size=34, weight='bold'), Icon(icons.FAVORITE, color='pink'), ElevatedButton(text='Вернуться в начало', color='black', bgcolor='#E8D5C4')], alignment=MainAxisAlignment.CENTER)),
+                # Container(content=Row(controls=[Text('Удачной покупки', size=34, weight='bold'), Icon(icons.FAVORITE, color='pink'), ElevatedButton(text='Вернуться в начало', color='black', bgcolor='#E8D5C4')], alignment=MainAxisAlignment.CENTER)),
+                Container(content=Row(
+                    controls=[Text('Удачной покупки', size=34, weight='bold'), Icon(icons.FAVORITE, color='pink'),],
+                    alignment=MainAxisAlignment.CENTER)),
+
             ]
-            )
+            ),
         )
 
 
@@ -182,7 +472,7 @@ class Calc_reclam():
 
     def next_page(self, e):
         self.page.controls.clear()
-        Result(self.page, self.answer_calc, self.result['mode'])
+        Result(self.page, self.answer_calc, self.result)
 
     def calculation(self):
         products = []
@@ -250,7 +540,7 @@ class Calc_reclam():
                 controls=[
                     Column(alignment=MainAxisAlignment.SPACE_BETWEEN, controls=[
                         Container(height=10),
-                        Container(content=Text('Пока программа рассчитывает оптимальный вариант покупки, ознакомьтесь с предложением наших спонсоров!',
+                        Container(content=Text('Пока программа рассчитывает варианты покупки, ознакомьтесь с предложением наших спонсоров!',
                                                size=self.page.height * 0.0296,
                                                weight='bold'), alignment=alignment.center, width=900),
                             Container(content=AutomaticImageCarousel(
@@ -447,7 +737,7 @@ class Calc_param():
         self.create_appbar()
 
         cg = Dropdown(
-                          value='Самый быстрый',
+                          value='Все варианты',
                           label="Параметр эффективности варианта",
                           bgcolor='#667FBA',
                           focused_bgcolor='#667FBA',
@@ -459,6 +749,7 @@ class Calc_param():
                           width=400, on_change=self.dropdown_changed_effects,
                           border_color='gray', border_width=1.5,
                           border_radius=10, options=[
+                              ft.dropdown.Option("Все варианты"),
                               ft.dropdown.Option("Самый быстрый"),
                               ft.dropdown.Option("Самый выгодный по цене"),
                               ft.dropdown.Option("Оптимальный")

@@ -41,7 +41,7 @@ class Result():
         self.appbar = ft.AppBar(
             leading=ft.Icon(ft.icons.APPS),
             leading_width=40,
-            title=ft.Text("Rock & Shop", weight=ft.FontWeight.BOLD),
+            title=ft.Text("Shopping Assistant", weight=ft.FontWeight.BOLD),
             center_title=False,
             bgcolor=ft.colors.SURFACE_VARIANT,
             actions=[
@@ -460,7 +460,7 @@ class Calc_reclam():
         self.appbar = ft.AppBar(
             leading=ft.Icon(ft.icons.APPS),
             leading_width=40,
-            title=ft.Text("Rock & Shop", weight=ft.FontWeight.BOLD),
+            title=ft.Text("Shopping Assistant", weight=ft.FontWeight.BOLD),
             center_title=False,
             bgcolor=ft.colors.SURFACE_VARIANT,
             actions=[
@@ -601,7 +601,7 @@ class Calc_param():
         self.appbar = ft.AppBar(
             leading=ft.Icon(ft.icons.APPS),
             leading_width=40,
-            title=ft.Text("Rock & Shop", weight=ft.FontWeight.BOLD),
+            title=ft.Text("Shopping Assistant", weight=ft.FontWeight.BOLD),
             center_title=False,
             bgcolor=ft.colors.SURFACE_VARIANT,
             actions=[
@@ -831,6 +831,7 @@ class Calc_param():
                                           )
                                   ], alignment=MainAxisAlignment.SPACE_BETWEEN),]
                     ),
+                    
                     Row(
                         controls=[
                             TextButton(content=Row(controls=[
@@ -871,7 +872,7 @@ class Shop_box():
         self.appbar = AppBar(
             leading=Icon(icons.APPS),
             leading_width=40,
-            title=Text("Rock & Shop", weight=FontWeight.BOLD),
+            title=Text("Shopping Assistant", weight=FontWeight.BOLD),
             center_title=False,
             bgcolor=colors.SURFACE_VARIANT,
             actions=[
@@ -1177,7 +1178,7 @@ class AppFinder:
         self.appbar = ft.AppBar(
             leading=ft.Icon(ft.icons.APPS),
             leading_width=40,
-            title=ft.Text("Rock & Shop", weight=ft.FontWeight.BOLD),
+            title=ft.Text("Shopping Assistant", weight=ft.FontWeight.BOLD),
             center_title=False,
             bgcolor=ft.colors.SURFACE_VARIANT,
             actions=[
@@ -1691,7 +1692,7 @@ class AppMain:
         self.value_page = value_page
         # self.page.horizontal_alignment = 'center'
         # self.page.vertical_alignment = 'center'
-        self.TextHeaderWelcome = Text('Привет, пришли за выгодными покупками?', style="headlineLarge",
+        self.TextHeaderWelcome = Text('Привет, пришли за выгодными покупками?\n(нажимая кнопку далее, Вы потверждаете что вам есть 18 лет)',  style="headlineLarge",
                                       text_align='center')
         self.create_appbar()
         if self.page.height == 0:
@@ -1715,7 +1716,7 @@ class AppMain:
                     Container(width=100),
                     TextButton(content=Row(controls=[
                         Icon(icons.ARROW_RIGHT, size=self.height* 0.1056),
-                        Text(value='Вперёд!', size=self.height*0.024)
+                        Text(value='Далее', size=self.height*0.024)
 
                     ]), on_click=self.to_next)
                 ], alignment=MainAxisAlignment.SPACE_BETWEEN))
@@ -1736,7 +1737,7 @@ class AppMain:
         self.appbar = ft.AppBar(
             leading=ft.Icon(ft.icons.APPS),
             leading_width=40,
-            title=ft.Text("Rock & Shop", weight=ft.FontWeight.BOLD),
+            title=ft.Text("Shopping Assistant", weight=ft.FontWeight.BOLD),
             center_title=False,
             bgcolor=ft.colors.SURFACE_VARIANT
         )

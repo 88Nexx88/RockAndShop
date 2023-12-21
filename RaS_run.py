@@ -6,7 +6,7 @@ from storage.value_class import Value_page
 
 
 def main(page: Page):
-    page.title = 'Rock and Shop? Yeep!'
+    page.title = 'Shopping Assistant'
     page.scroll = 'auto'
     page.theme = theme.Theme(color_scheme_seed='#654E92')
     page.theme.scrollbar_theme = ScrollbarTheme(thumb_color='black')

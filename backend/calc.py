@@ -215,8 +215,7 @@ class Calc_distance():
 def calc_(result):
     min_price_answer = create_answer_min_price(result)
     all_answer = create_answer_all(result, min_price_answer)
-    # for a in all_answer:
-    #     print(a, all_answer[a])
+    print(all_answer)
 
     for a in all_answer:
         if type(all_answer[a]) == type(dict()):
@@ -387,7 +386,7 @@ def create_answer_all(data, min_price_answer):
     max_path_answer['tsp'], max_path_answer['dist'] = graph.calc_distance(max_path_answer['path'])
 
     start = time.time()
-    if len(shop_box) < 12:
+    if len(shop_box) < 5:
         start = time.time()
         min_dist_answer = cl.calc_min_path(graph, shop_box, max_path_answer)
         min_dist_answer['tsp'], min_dist_answer['dist'] = graph.calc_distance(min_dist_answer['path'])
@@ -414,7 +413,7 @@ def create_answer_all(data, min_price_answer):
         opt_answer[index]['path'] = f
         opt_answer[index]['tsp'], opt_answer[index]['dist'] = graph.calc_distance(f)
         opt_answer[index]['price'] = cl.calculate_price_shops(opt_answer[index]['shops'])
-    if len(shop_box) < 12:
+    if len(shop_box) < 5:
         opt_answer.append(max_path_answer)
     else:
         min_dist_answer = max_path_answer.copy()
